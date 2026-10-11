@@ -11,12 +11,12 @@ class Turno extends Model {
     declare profesionalId: number
     declare agendaId: number
 
-    declare fecha: Date
-    declare hora: Date
+    declare fecha: string
+    declare hora: string
 
     declare estado: EstadoTurno
     declare motivo: string
-    declare observaciones?: string
+    declare observaciones?: string | null
 
     declare createdAt: Date
     declare updatedAt: Date
@@ -33,16 +33,34 @@ Turno.init(
         pacienteId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'pacientes',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
         },
 
         profesionalId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'profesionales',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
         },
 
         agendaId: {
             type: DataTypes.INTEGER,
             allowNull: false,
+            references: {
+                model: 'agendas',
+                key: 'id',
+            },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
         },
 
         fecha: {
@@ -67,8 +85,12 @@ Turno.init(
         },
 
         motivo: {
-            type: DataTypes.STRING,
+            type: DataTypes.STRING(255),
             allowNull: false,
+            validate: {
+                notEmpty: true,
+                len: [1, 255],
+            },
         },
 
         observaciones: {

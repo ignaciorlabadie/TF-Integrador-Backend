@@ -13,7 +13,7 @@ class Paciente extends Model implements DatosPersona {
     declare dni: string
     declare telefono: string
 
-    declare fechaNacimiento: Date
+    declare fechaNacimiento: string
     declare direccion: string
 
     declare createdAt: Date

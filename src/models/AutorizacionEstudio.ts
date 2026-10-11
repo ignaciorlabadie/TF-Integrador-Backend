@@ -7,8 +7,8 @@ class AutorizacionEstudio extends Model {
     declare id: number
     declare estudioId: number
     declare profesionalId: number
-    declare fechaAutorizacion: Date
-    declare fechaVencimiento: Date
+    declare fechaAutorizacion: string
+    declare fechaVencimiento: string
     declare estado: EstadoAutorizacionEstudio
 
     declare createdAt: Date
@@ -52,6 +52,8 @@ AutorizacionEstudio.init(
                 model: 'estudios',
                 key: 'id',
             },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
         },
 
         profesionalId: {
@@ -61,6 +63,8 @@ AutorizacionEstudio.init(
                 model: 'profesionales',
                 key: 'id',
             },
+            onUpdate: 'CASCADE',
+            onDelete: 'RESTRICT',
         },
 
         fechaAutorizacion: {
