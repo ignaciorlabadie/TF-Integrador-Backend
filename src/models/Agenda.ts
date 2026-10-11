@@ -39,7 +39,11 @@ class Agenda extends Model {
         return Math.floor(tiempoTotalMinutos / this.duracionTurno)
     }
 
+<<<<<<< HEAD
     
+=======
+    // Corregido: Dispocibles -> Disponibles
+>>>>>>> 1f2163d (feat: agrego modelos Agenda, Espacio, AsignacionEspacio y tipos asociados)
     async calcularTurnosDisponibles(fecha: string | Date): Promise<number> {
         if (!this.activo) return 0
 
