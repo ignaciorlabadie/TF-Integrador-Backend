@@ -75,13 +75,13 @@ Turno.init(
 
         estado: {
             type: DataTypes.ENUM(
-                'pendiente',
-                'confirmado',
-                'cancelado',
-                'completado',
+                'PENDIENTE',
+                'CONFIRMADO',
+                'CANCELADO',
+                'COMPLETADO',
             ),
             allowNull: false,
-            defaultValue: 'pendiente',
+            defaultValue: 'PENDIENTE',
         },
 
         motivo: {

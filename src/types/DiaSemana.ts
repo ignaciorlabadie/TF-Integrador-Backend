@@ -1,4 +1,4 @@
-export type DiaSemana = 
+export type DiaSemana =
     | 'LUNES'
     | 'MARTES'
     | 'MIERCOLES'

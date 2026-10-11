@@ -5,9 +5,9 @@ class TarifaEspacio extends Model {
     declare id: number
 
     declare espacioId: number
-    declare precioPorHora: number
-    declare fechaDesde: Date
-    declare fechaHasta: Date | null // null indica que es el precio vigente actualmente
+    declare precioPorHora: string
+    declare fechaDesde: string
+    declare fechaHasta: string | null // null indica que es el precio vigente actualmente
 
     declare createdAt: Date
     declare updatedAt: Date
@@ -32,7 +32,7 @@ TarifaEspacio.init(
         },
         precioPorHora: {
             // DECIMAL(10, 2) hasta 8 dígitos enteros y 2 decimales
-            type: DataTypes.DECIMAL(10, 2), 
+            type: DataTypes.DECIMAL(10, 2),
             allowNull: false,
             validate: {
                 min: 0, // El precio no puede ser negativo
@@ -52,10 +52,12 @@ TarifaEspacio.init(
         tableName: 'tarifas_espacios',
         timestamps: true,
         validate: {
-            // Validación de fechas: 
+            // Validación de fechas:
             validarFechas(this: TarifaEspacio) {
                 if (this.fechaHasta && this.fechaDesde > this.fechaHasta) {
-                    throw new Error('La fecha de inicio de la tarifa no puede ser posterior a su fecha de fin.')
+                    throw new Error(
+                        'La fecha de inicio de la tarifa no puede ser posterior a su fecha de fin.',
+                    )
                 }
             },
         },
