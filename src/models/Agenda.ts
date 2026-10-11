@@ -39,7 +39,6 @@ class Agenda extends Model {
         return Math.floor(tiempoTotalMinutos / this.duracionTurno)
     }
 
-    
     async calcularTurnosDisponibles(fecha: string | Date): Promise<number> {
         if (!this.activo) return 0
 
