@@ -1,5 +1,5 @@
 import { DataTypes, Model, Op } from 'sequelize'
-import type { DiaSemana } from '../types/DiaSemana.ts'
+import type { DiaSemana } from '../types/DiaSemana.js'
 import sequelize from '../config/database.js'
 import Turno from './Turno.js'
 
@@ -14,7 +14,7 @@ class Agenda extends Model {
     declare createdAt: Date
     declare updatedAt: Date
 
-    // OPERACIONES DEL DIAGRAMA UML 
+    // OPERACIONES DEL DIAGRAMA UML
 
     async activar(): Promise<void> {
         this.activo = true
@@ -28,12 +28,17 @@ class Agenda extends Model {
 
     calcularCapacidadTotal(): number {
         // calcula la cantidad de turnos que entran en el bloque horario
-        const [horaInicioH, horaInicioM] = this.horaInicio.split(':').map(Number) as [number, number]
-        
-        const [horaFinH, horaFinM] = this.horaFin.split(':').map(Number) as [number, number]
+        const [horaInicioH, horaInicioM] = this.horaInicio
+            .split(':')
+            .map(Number) as [number, number]
 
-        const minutosInicio = (horaInicioH * 60) + horaInicioM
-        const minutosFin = (horaFinH * 60) + horaFinM
+        const [horaFinH, horaFinM] = this.horaFin.split(':').map(Number) as [
+            number,
+            number,
+        ]
+
+        const minutosInicio = horaInicioH * 60 + horaInicioM
+        const minutosFin = horaFinH * 60 + horaFinM
 
         const tiempoTotalMinutos = minutosFin - minutosInicio
         return Math.floor(tiempoTotalMinutos / this.duracionTurno)
@@ -49,12 +54,12 @@ class Agenda extends Model {
                 agendaId: this.id,
                 fecha: fecha,
                 estado: {
-                    [Op.not]: 'cancelado' // los cancelados liberan el cupo
-                }
-            }
+                    [Op.not]: 'CANCELADO', // los cancelados liberan el cupo
+                },
+            },
         })
 
-        return capacidadTotal - turnosOcupados 
+        return capacidadTotal - turnosOcupados
     }
 
     // verifica si hay turnos disponibles para la fecha y hora especificada
@@ -67,15 +72,15 @@ class Agenda extends Model {
                 fecha: fecha,
                 hora: hora,
                 estado: {
-                    [Op.not]: 'cancelado'
-                }
-            }
+                    [Op.not]: 'CANCELADO',
+                },
+            },
         })
 
         // está disponible si NO encontro un turno ocupando ese lugar
         return turnoExistente === null
     }
-} 
+}
 
 Agenda.init(
     {

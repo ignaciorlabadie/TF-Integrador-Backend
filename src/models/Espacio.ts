@@ -1,6 +1,6 @@
 import { DataTypes, Model } from 'sequelize'
-import type { TipoEspacio } from '../types/TipoEspacio.ts'
-import type { UbicacionEspacio } from '../types/UbicacionEspacio.ts'
+import type { TipoEspacio } from '../types/TipoEspacio.js'
+import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
 import sequelize from '../config/database.js'
 
 class Espacio extends Model {

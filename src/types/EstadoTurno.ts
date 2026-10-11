@@ -1,2 +1,2 @@
 export type EstadoTurno =
-    'pendiente' | 'confirmado' | 'cancelado' | 'completado'
+    'PENDIENTE' | 'CONFIRMADO' | 'CANCELADO' | 'COMPLETADO'
