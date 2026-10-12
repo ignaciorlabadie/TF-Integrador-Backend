@@ -16,7 +16,10 @@ export default tseslint.config(
         },
     },
     {
-        files: ['src/database/migrations/**/*.js'],
+        files: [
+            'src/database/migrations/**/*.js',
+            'src/database/seeders/**/*.js',
+        ],
         languageOptions: {
             sourceType: 'commonjs',
             globals: {
@@ -26,6 +29,9 @@ export default tseslint.config(
                 __dirname: 'readonly',
                 __filename: 'readonly',
             },
+        },
+        rules: {
+            '@typescript-eslint/no-require-imports': 'off',
         },
     },
 )
