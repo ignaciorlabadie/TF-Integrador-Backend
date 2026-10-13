@@ -1,1 +1,3 @@
-export type Rol = 'PACIENTE' | 'PROFESIONAL' | 'ADMIN'
+export const ROLES = ['PACIENTE', 'PROFESIONAL', 'ADMIN'] as const
+
+export type Rol = (typeof ROLES)[number]

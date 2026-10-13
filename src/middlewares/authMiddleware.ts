@@ -1,10 +1,11 @@
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+import { ROLES, type Rol } from '../types/Rol.js'
 
 interface DatosToken {
     id: number
     email: string
-    rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN'
+    rol: Rol
 }
 
 declare module 'express-serve-static-core' {
@@ -49,7 +50,7 @@ export function verificarToken(
             typeof datos === 'string' ||
             typeof datos.id !== 'number' ||
             typeof datos.email !== 'string' ||
-            !['PACIENTE', 'PROFESIONAL', 'ADMIN'].includes(datos.rol)
+            !ROLES.includes(datos.rol)
         ) {
             return res.status(401).json({
                 mensaje: 'Token de autenticación inválido',
