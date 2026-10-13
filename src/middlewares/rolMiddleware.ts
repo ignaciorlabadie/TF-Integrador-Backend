@@ -1,6 +1,6 @@
 import type { Request, Response, NextFunction } from 'express'
 
-type Rol = 'PACIENTE' | 'PROFESIONAL' | 'ADMIN'
+import type { Rol } from '../types/Rol.js'
 
 export function verificarAdminOPropio(
     req: Request,
