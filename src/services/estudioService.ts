@@ -74,7 +74,7 @@ export async function crearEstudio(data: {
   tipo: string
   fecha: string
   descripcion?: string
-  archivoURL?: string
+  archivoUrl?: string
 }) {
   const paciente = await Paciente.findByPk(data.pacienteId)
   if (!paciente) {
@@ -84,20 +84,20 @@ export async function crearEstudio(data: {
   return await Estudio.create(data)
 }
 
-export async function adjuntarArchivoEstudio(id: number, archivoURL: string) {
+export async function adjuntarArchivoEstudio(id: number, archivoUrl: string) {
   const estudio = await Estudio.findByPk(id)
   if (!estudio) {
     throw new AppError(404, 'Estudio no encontrado')
   }
 
-  return await estudio.update({ archivoURL })
+  return await estudio.update({ archivoUrl })
 }
 
-export async function actualizarArchivoEstudio(id: number, archivoURL: string) {
+export async function actualizarArchivoEstudio(id: number, archivoUrl: string) {
   const estudio = await Estudio.findByPk(id)
   if (!estudio) {
     throw new AppError(404, 'Estudio no encontrado')
   }
 
-  return await estudio.update({ archivoURL })
+  return await estudio.update({ archivoUrl })
 }

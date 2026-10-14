@@ -75,7 +75,7 @@ export async function registrarEstudio(req: Request, res: Response) {
     tipo: tipo.trim(),
     fecha,
     descripcion: descripcion?.trim(),
-    archivoURL: archivoURL?.trim(),
+    archivoUrl: archivoURL?.trim(),
   })
 
   return res.status(201).json(estudio)
