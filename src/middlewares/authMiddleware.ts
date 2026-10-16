@@ -1,5 +1,7 @@
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
+
+import { AppError } from '../errors/AppError.js'
 import { ROLES, type Rol } from '../types/Rol.js'
 
 interface DatosToken {
@@ -22,25 +24,19 @@ export function verificarToken(
     const authorization = req.headers.authorization
 
     if (!authorization || !authorization.startsWith('Bearer ')) {
-        return res.status(401).json({
-            mensaje: 'Token de autenticación requerido',
-        })
+        throw new AppError(401, 'Token de autorización requerido')
     }
 
     const token = authorization.split(' ')[1]
 
     if (!token) {
-        return res.status(401).json({
-            mensaje: 'Token de autenticación inválido',
-        })
+        throw new AppError(401, 'Token de autenticación inválido')
     }
 
     const jwtSecret = process.env.JWT_SECRET
 
     if (!jwtSecret) {
-        return res.status(500).json({
-            mensaje: 'Error interno del servidor',
-        })
+        throw new AppError(500, 'JWT_SECRET no está configurado')
     }
 
     try {
@@ -52,9 +48,7 @@ export function verificarToken(
             typeof datos.email !== 'string' ||
             !ROLES.includes(datos.rol)
         ) {
-            return res.status(401).json({
-                mensaje: 'Token de autenticación inválido',
-            })
+            throw new AppError(401, 'Token de autenticación inválido')
         }
 
         req.usuario = {
@@ -64,9 +58,11 @@ export function verificarToken(
         }
 
         return next()
-    } catch {
-        return res.status(401).json({
-            mensaje: 'Token inválido o expirado',
-        })
+    } catch (error) {
+        if (error instanceof AppError) {
+            throw error
+        }
+
+        throw new AppError(401, 'Token inválido o expirado')
     }
 }

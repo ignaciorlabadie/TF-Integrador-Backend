@@ -3,6 +3,7 @@ import type { Request, Response } from 'express'
 import { iniciarSesion } from '../services/authService.js'
 import { buscarUsuarioPorId } from '../services/usuarioService.js'
 import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
 
 export async function login(req: Request, res: Response) {
     const { email, password } = req.body
@@ -25,7 +26,7 @@ export async function obtenerPerfil(req: Request, res: Response) {
     const id = req.usuario?.id
 
     if (id === undefined) {
-        throw new AppError(401, 'Autenticación requerida')
+        throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
     }
 
     const usuario = await buscarUsuarioPorId(id)
