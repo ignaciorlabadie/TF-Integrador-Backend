@@ -32,5 +32,17 @@ services:
             DB_USER: postgres
             DB_PASSWORD: postgres
 
+    pgadmin:
+        image: dpage/pgadmin4
+        restart: unless-stopped
+        ports:
+            - '8080:80'
+        environment:
+            PGADMIN_DEFAULT_EMAIL: admin@local.com
+            PGADMIN_DEFAULT_PASSWORD: admin123
+        depends_on:
+            db:
+                condition: service_healthy
+
 volumes:
     pg_data:
