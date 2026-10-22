@@ -3,16 +3,25 @@ import request from 'supertest'
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
-vi.mock('../../src/models/Usuario.js', () => ({
-    default: {
-        findAll: vi.fn(),
-        findByPk: vi.fn(),
-        findOne: vi.fn(),
-        create: vi.fn(),
-    },
-}))
+vi.mock('../../src/models/index.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
 
-import Usuario from '../../src/models/Usuario.js'
+    return mocks.modelosMock()
+})
+
+vi.mock('../../src/models/Usuario.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
+
+    return { default: mocks.usuarioModel }
+})
+
+vi.mock('../../src/config/database.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
+
+    return { default: mocks.databaseMock() }
+})
+
+import { usuarioModel } from '../helpers/mocksModelos.js'
 import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
@@ -37,7 +46,7 @@ describe('POST /auth/login', () => {
     it('debe iniciar sesión correctamente', async () => {
         const hash = await bcrypt.hash('12345678', 10)
 
-        vi.mocked(Usuario.findOne).mockResolvedValue({
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
             id: 1,
             email: 'usuario@example.com',
             password: hash,
@@ -63,7 +72,7 @@ describe('POST /auth/login', () => {
     it('debe rechazar credenciales incorrectas', async () => {
         const hash = await bcrypt.hash('12345678', 10)
 
-        vi.mocked(Usuario.findOne).mockResolvedValue({
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
             id: 1,
             email: 'usuario@example.com',
             password: hash,
@@ -85,13 +94,13 @@ describe('POST /auth/login', () => {
             .send({ email: 'usuario@example.com' })
 
         expect(respuesta.status).toBe(400)
-        expect(Usuario.findOne).not.toHaveBeenCalled()
+        expect(usuarioModel.findOne).not.toHaveBeenCalled()
     })
 })
 
 describe('GET /auth/me', () => {
     it('debe devolver el perfil del usuario autenticado', async () => {
-        vi.mocked(Usuario.findByPk).mockResolvedValue({
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue({
             id: 1,
             email: 'usuario@example.com',
             rol: 'PACIENTE',

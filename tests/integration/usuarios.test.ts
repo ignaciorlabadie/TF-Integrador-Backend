@@ -2,16 +2,33 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 
-vi.mock('../../src/models/Usuario.js', () => ({
+vi.mock('../../src/models/index.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
+
+    return mocks.modelosMock()
+})
+
+vi.mock('../../src/models/Usuario.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
+
+    return { default: mocks.usuarioModel }
+})
+
+vi.mock('../../src/config/database.js', async () => {
+    const mocks = await import('../helpers/mocksModelos.js')
+
+    return { default: mocks.databaseMock() }
+})
+
+vi.mock('bcryptjs', () => ({
     default: {
-        findAll: vi.fn(),
-        findByPk: vi.fn(),
-        findOne: vi.fn(),
-        create: vi.fn(),
+        hash: vi.fn(),
+        compare: vi.fn(),
     },
 }))
 
-import Usuario from '../../src/models/Usuario.js'
+import bcrypt from 'bcryptjs'
+import { usuarioModel } from '../helpers/mocksModelos.js'
 import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
@@ -26,6 +43,7 @@ function tokenPara(id: number, rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN') {
 beforeEach(() => {
     vi.resetAllMocks()
     vi.stubEnv('JWT_SECRET', JWT_SECRET)
+    vi.mocked(bcrypt.hash).mockResolvedValue('hash-de-prueba' as never)
 })
 
 afterEach(() => {
@@ -33,76 +51,130 @@ afterEach(() => {
 })
 
 describe('POST /usuarios', () => {
-    it('debe registrar un paciente', async () => {
-        vi.mocked(Usuario.findOne).mockResolvedValue(null)
-        vi.mocked(Usuario.create).mockResolvedValue({
+    it('debe responder 401 sin token', async () => {
+        const respuesta = await request(app).post('/usuarios').send({
+            email: 'profesional@test.com',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+        })
+
+        expect(respuesta.status).toBe(401)
+        expect(usuarioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 403 a un paciente', async () => {
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
+            .send({
+                email: 'profesional@test.com',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            })
+
+        expect(respuesta.status).toBe(403)
+        expect(usuarioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe crear un profesional como administrador', async () => {
+        vi.mocked(usuarioModel.findOne).mockResolvedValue(null)
+        vi.mocked(usuarioModel.create).mockResolvedValue({
             id: 1,
-            email: 'paciente@test.com',
-            rol: 'PACIENTE',
+            email: 'profesional@test.com',
+            rol: 'PROFESIONAL',
             activo: true,
         } as never)
 
-        const respuesta = await request(app).post('/usuarios').send({
-            email: 'paciente@test.com',
-            password: '12345678',
-            rol: 'PACIENTE',
-        })
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'profesional@test.com',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            })
 
         expect(respuesta.status).toBe(201)
         expect(respuesta.body).toEqual({
             id: 1,
-            email: 'paciente@test.com',
-            rol: 'PACIENTE',
+            email: 'profesional@test.com',
+            rol: 'PROFESIONAL',
             activo: true,
         })
     })
 
-    it('debe rechazar un email inválido', async () => {
-        const respuesta = await request(app).post('/usuarios').send({
-            email: 'no-es-un-email',
-            password: '12345678',
-            rol: 'PACIENTE',
-        })
+    it('debe rechazar el alta de un paciente', async () => {
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'paciente@test.com',
+                password: 'Password123',
+                rol: 'PACIENTE',
+            })
 
         expect(respuesta.status).toBe(400)
-        expect(Usuario.create).not.toHaveBeenCalled()
+        expect(usuarioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un rol inválido', async () => {
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'usuario@test.com',
+                password: 'Password123',
+                rol: 'SUPERVISOR',
+            })
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un email inválido', async () => {
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'no-es-un-email',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            })
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.create).not.toHaveBeenCalled()
     })
 
     it('debe rechazar una contraseña corta', async () => {
-        const respuesta = await request(app).post('/usuarios').send({
-            email: 'paciente@test.com',
-            password: 'corta',
-            rol: 'PACIENTE',
-        })
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'profesional@test.com',
+                password: 'corta',
+                rol: 'PROFESIONAL',
+            })
 
         expect(respuesta.status).toBe(400)
     })
 
     it('debe rechazar un email ya registrado', async () => {
-        vi.mocked(Usuario.findOne).mockResolvedValue({
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
             id: 1,
-            email: 'paciente@test.com',
+            email: 'profesional@test.com',
         } as never)
 
-        const respuesta = await request(app).post('/usuarios').send({
-            email: 'paciente@test.com',
-            password: '12345678',
-            rol: 'PACIENTE',
-        })
+        const respuesta = await request(app)
+            .post('/usuarios')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({
+                email: 'profesional@test.com',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            })
 
         expect(respuesta.status).toBe(409)
-        expect(Usuario.create).not.toHaveBeenCalled()
-    })
-
-    it('debe rechazar el registro público con rol ADMIN', async () => {
-        const respuesta = await request(app).post('/usuarios').send({
-            email: 'admin@test.com',
-            password: '12345678',
-            rol: 'ADMIN',
-        })
-
-        expect(respuesta.status).toBe(400)
-        expect(Usuario.create).not.toHaveBeenCalled()
+        expect(usuarioModel.create).not.toHaveBeenCalled()
     })
 })
 
@@ -122,7 +194,7 @@ describe('GET /usuarios', () => {
     })
 
     it('debe listar usuarios a un administrador', async () => {
-        vi.mocked(Usuario.findAll).mockResolvedValue([])
+        vi.mocked(usuarioModel.findAll).mockResolvedValue([])
 
         const respuesta = await request(app)
             .get('/usuarios')
@@ -135,7 +207,7 @@ describe('GET /usuarios', () => {
 
 describe('GET /usuarios/:id', () => {
     it('debe permitir al propio usuario ver su perfil', async () => {
-        vi.mocked(Usuario.findByPk).mockResolvedValue({
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue({
             id: 1,
             email: 'paciente@test.com',
             rol: 'PACIENTE',
@@ -156,11 +228,11 @@ describe('GET /usuarios/:id', () => {
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(403)
-        expect(Usuario.findByPk).not.toHaveBeenCalled()
+        expect(usuarioModel.findByPk).not.toHaveBeenCalled()
     })
 
     it('debe permitir a un administrador ver cualquier usuario', async () => {
-        vi.mocked(Usuario.findByPk).mockResolvedValue({
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue({
             id: 2,
             email: 'otro@test.com',
             rol: 'PACIENTE',
@@ -186,7 +258,7 @@ describe('PUT /usuarios/:id', () => {
             save: vi.fn(),
         }
 
-        vi.mocked(Usuario.findByPk).mockResolvedValue(usuario as never)
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
             .put('/usuarios/1')
@@ -216,7 +288,7 @@ describe('PATCH /usuarios/:id/desactivar', () => {
             save: vi.fn(),
         }
 
-        vi.mocked(Usuario.findByPk).mockResolvedValue(usuario as never)
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
             .patch('/usuarios/1/desactivar')
@@ -236,7 +308,7 @@ describe('PATCH /usuarios/:id/reactivar', () => {
             save: vi.fn(),
         }
 
-        vi.mocked(Usuario.findByPk).mockResolvedValue(usuario as never)
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
             .patch('/usuarios/1/reactivar')
@@ -244,5 +316,14 @@ describe('PATCH /usuarios/:id/reactivar', () => {
 
         expect(respuesta.status).toBe(200)
         expect(usuario.save).toHaveBeenCalled()
+    })
+})
+
+describe('GET /roles', () => {
+    it('debe listar los roles disponibles', async () => {
+        const respuesta = await request(app).get('/roles')
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body).toEqual(['PACIENTE', 'PROFESIONAL', 'ADMIN'])
     })
 })

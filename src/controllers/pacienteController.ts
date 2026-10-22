@@ -11,27 +11,13 @@ import {
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import {
-    esEmailValido,
-    esPasswordValida,
     esDniValido,
-    esTelefonoValido,
     esFechaNacimientoValida,
+    esTelefonoValido,
+    esTextoValido,
 } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
-
-function esTextoValido(
-    valor: unknown,
-    min: number,
-    max: number,
-): valor is string {
-    if (typeof valor !== 'string') {
-        return false
-    }
-
-    const longitud = valor.trim().length
-
-    return longitud >= min && longitud <= max
-}
+import { validarCrearPaciente } from '../validators/validarCrearPaciente.js'
 
 function validarDatosActualizacion(body: Request['body']) {
     const { nombre, apellido, dni, telefono, fechaNacimiento, direccion } = body
@@ -99,45 +85,13 @@ export async function obtenerMiPerfil(req: Request, res: Response) {
 }
 
 export async function registrarPaciente(req: Request, res: Response) {
-    const {
-        email,
-        password,
-        nombre,
-        apellido,
-        dni,
-        telefono,
-        fechaNacimiento,
-        direccion,
-    } = req.body
+    const validacion = validarCrearPaciente(req.body)
 
-    if (
-        typeof email !== 'string' ||
-        !esEmailValido(email.trim()) ||
-        typeof password !== 'string' ||
-        !esPasswordValida(password) ||
-        !esTextoValido(nombre, 2, 100) ||
-        !esTextoValido(apellido, 2, 100) ||
-        typeof dni !== 'string' ||
-        !esDniValido(dni) ||
-        typeof telefono !== 'string' ||
-        !esTelefonoValido(telefono) ||
-        typeof fechaNacimiento !== 'string' ||
-        !esFechaNacimientoValida(fechaNacimiento) ||
-        !esTextoValido(direccion, 3, 150)
-    ) {
-        throw new AppError(400, 'Datos de paciente inválidos')
+    if (!validacion.ok) {
+        throw new AppError(400, validacion.mensaje)
     }
 
-    const paciente = await crearPaciente({
-        email,
-        password,
-        nombre,
-        apellido,
-        dni,
-        telefono,
-        fechaNacimiento,
-        direccion,
-    })
+    const paciente = await crearPaciente(validacion.datos)
 
     return res.status(201).json(paciente)
 }

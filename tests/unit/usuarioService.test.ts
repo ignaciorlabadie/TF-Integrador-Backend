@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { UniqueConstraintError } from 'sequelize'
+import type { Transaction } from 'sequelize'
 
 vi.mock('../../src/models/Usuario.js', () => ({
     default: {
@@ -22,6 +24,7 @@ import {
     listarUsuarios,
     buscarUsuarioPorId,
     buscarUsuarioPorEmail,
+    crearCuenta,
     crearUsuario,
     actualizarUsuario,
     desactivarUsuario,
@@ -88,11 +91,14 @@ describe('usuarioService', () => {
             activo: true,
         })
 
-        expect(Usuario.create).toHaveBeenCalledWith({
-            email: 'usuario@example.com',
-            password: 'hash',
-            rol: 'PACIENTE',
-        })
+        expect(Usuario.create).toHaveBeenCalledWith(
+            {
+                email: 'usuario@example.com',
+                password: 'hash',
+                rol: 'PACIENTE',
+            },
+            {},
+        )
 
         expect(bcrypt.hash).toHaveBeenCalledWith('12345678', 10)
     })
@@ -135,6 +141,93 @@ describe('usuarioService', () => {
 
         expect(Usuario.findOne).toHaveBeenCalledWith({
             where: { email: 'usuario@example.com' },
+        })
+    })
+
+    it('debe crear una cuenta dentro de la transacción recibida', async () => {
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockResolvedValue({
+            id: 7,
+            email: 'usuario@example.com',
+            password: 'hash',
+            rol: 'PROFESIONAL',
+            activo: true,
+        } as never)
+
+        const transaction = { id: 'tx-1' } as unknown as Transaction
+
+        const cuenta = await crearCuenta(
+            {
+                email: '  Usuario@Example.com  ',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            },
+            { transaction },
+        )
+
+        expect(cuenta.id).toBe(7)
+
+        expect(Usuario.findOne).toHaveBeenCalledWith({
+            where: { email: 'usuario@example.com' },
+            transaction,
+        })
+
+        expect(Usuario.create).toHaveBeenCalledWith(
+            {
+                email: 'usuario@example.com',
+                password: 'hash',
+                rol: 'PROFESIONAL',
+            },
+            { transaction },
+        )
+    })
+
+    it('debe crear la cuenta desactivada cuando se solicita', async () => {
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockResolvedValue({
+            id: 7,
+            email: 'usuario@example.com',
+            password: 'hash',
+            rol: 'PROFESIONAL',
+            activo: false,
+        } as never)
+
+        await crearCuenta({
+            email: 'usuario@example.com',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+            activo: false,
+        })
+
+        expect(Usuario.create).toHaveBeenCalledWith(
+            {
+                email: 'usuario@example.com',
+                password: 'hash',
+                rol: 'PROFESIONAL',
+                activo: false,
+            },
+            {},
+        )
+    })
+
+    it('debe devolver 409 si la base rechaza el email duplicado', async () => {
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockRejectedValue(
+            new UniqueConstraintError({}),
+        )
+
+        await expect(
+            crearCuenta({
+                email: 'usuario@example.com',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            }),
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            message: 'El email ya está registrado',
         })
     })
 

@@ -1,11 +1,12 @@
-import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 
 import Usuario from '../models/Usuario.js'
 import { AppError } from '../errors/AppError.js'
+import { verificarPassword } from '../utils/passwords.js'
+import { normalizarEmail } from '../utils/validacion.js'
 
 export async function iniciarSesion(email: string, password: string) {
-    const emailNormalizado = email.trim().toLowerCase()
+    const emailNormalizado = normalizarEmail(email)
 
     const usuario = await Usuario.findOne({
         where: { email: emailNormalizado },
@@ -19,7 +20,7 @@ export async function iniciarSesion(email: string, password: string) {
         throw new AppError(403, 'El usuario está desactivado')
     }
 
-    const passwordValida = await bcrypt.compare(password, usuario.password)
+    const passwordValida = await verificarPassword(password, usuario.password)
 
     if (!passwordValida) {
         throw new AppError(401, 'Email o contraseña incorrectos')

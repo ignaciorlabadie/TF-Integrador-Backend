@@ -4,4 +4,5 @@ export interface CrearUsuario {
     email: string
     password: string
     rol: Rol
+    activo?: boolean
 }
