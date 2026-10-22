@@ -4,6 +4,7 @@ import {
     verificarRol,
     verificarAdminOPropio,
 } from '../../src/middlewares/rolMiddleware.js'
+import { AppError } from '../../src/errors/AppError.js'
 
 function crearMocks(
     rol?: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN',
@@ -30,29 +31,41 @@ function crearMocks(
     return { req, res, next }
 }
 
+function capturarError(fn: () => void): unknown {
+    try {
+        fn()
+    } catch (error) {
+        return error
+    }
+
+    return undefined
+}
+
 describe('verificarRol', () => {
-    it('debe responder 401 si no hay usuario autenticado', () => {
+    it('debe lanzar 401 si no hay usuario autenticado', () => {
         const { req, res, next } = crearMocks()
         const middleware = verificarRol('ADMIN')
 
-        middleware(req, res, next)
+        const error = capturarError(() => middleware(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Autenticación requerida',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Autenticación requerida',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 403 si el rol no está permitido', () => {
+    it('debe lanzar 403 si el rol no está permitido', () => {
         const { req, res, next } = crearMocks('PACIENTE')
         const middleware = verificarRol('ADMIN')
 
-        middleware(req, res, next)
+        const error = capturarError(() => middleware(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(403)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'No tenés permisos para realizar esta acción',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 403,
+            message: 'No tenés permisos para realizar esta acción',
         })
         expect(next).not.toHaveBeenCalled()
     })
@@ -79,12 +92,16 @@ describe('verificarRol', () => {
 })
 
 describe('verificarAdminOPropio', () => {
-    it('debe responder 401 si no hay usuario autenticado', () => {
+    it('debe lanzar 401 si no hay usuario autenticado', () => {
         const { req, res, next } = crearMocks(undefined, { id: '1' })
 
-        verificarAdminOPropio(req, res, next)
+        const error = capturarError(() => verificarAdminOPropio(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Autenticación requerida',
+        })
         expect(next).not.toHaveBeenCalled()
     })
 
@@ -106,24 +123,29 @@ describe('verificarAdminOPropio', () => {
         expect(res.status).not.toHaveBeenCalled()
     })
 
-    it('debe responder 403 si el usuario intenta ver a otro', () => {
+    it('debe lanzar 403 si el usuario intenta ver a otro', () => {
         const { req, res, next } = crearMocks('PACIENTE', { id: '2' })
 
-        verificarAdminOPropio(req, res, next)
+        const error = capturarError(() => verificarAdminOPropio(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(403)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'No tenés permisos para realizar esta acción',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 403,
+            message: 'No tenés permisos para realizar esta acción',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 403 si el id no es válido y no es admin', () => {
+    it('debe lanzar 403 si el id no es válido y no es admin', () => {
         const { req, res, next } = crearMocks('PACIENTE', { id: 'abc' })
 
-        verificarAdminOPropio(req, res, next)
+        const error = capturarError(() => verificarAdminOPropio(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(403)
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 403,
+            message: 'No tenés permisos para realizar esta acción',
+        })
         expect(next).not.toHaveBeenCalled()
     })
 })

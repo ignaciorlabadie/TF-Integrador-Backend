@@ -1,14 +1,24 @@
+import { ROLES } from '../types/Rol.js'
+import type { Rol } from '../types/Rol.js'
+
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DNI_REGEX = /^\d{7,8}$/
 const TELEFONO_REGEX = /^\+?\d{6,25}$/
 export const FECHA_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
+export const PASSWORD_MINIMO = 8
+export const PASSWORD_MAXIMO = 72
+
 export function esEmailValido(email: string): boolean {
     return EMAIL_REGEX.test(email)
 }
 
-export function esPasswordValida(password: string): boolean {
-    return password.length >= 8
+export function esPasswordValida(password: unknown): password is string {
+    return (
+        typeof password === 'string' &&
+        password.length >= PASSWORD_MINIMO &&
+        password.length <= PASSWORD_MAXIMO
+    )
 }
 
 export function esDniValido(dni: string): boolean {
@@ -17,6 +27,28 @@ export function esDniValido(dni: string): boolean {
 
 export function esTelefonoValido(telefono: string): boolean {
     return TELEFONO_REGEX.test(telefono)
+}
+
+export function esTextoValido(
+    valor: unknown,
+    min: number,
+    max: number,
+): valor is string {
+    if (typeof valor !== 'string') {
+        return false
+    }
+
+    const longitud = valor.trim().length
+
+    return longitud >= min && longitud <= max
+}
+
+export function esRolValido(rol: unknown): rol is Rol {
+    return typeof rol === 'string' && (ROLES as readonly string[]).includes(rol)
+}
+
+export function normalizarEmail(email: string): string {
+    return email.trim().toLowerCase()
 }
 
 export function esFechaValida(fecha: string): boolean {

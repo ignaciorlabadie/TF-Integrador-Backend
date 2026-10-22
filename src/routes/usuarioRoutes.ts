@@ -4,7 +4,7 @@ import {
     obtenerUsuarios,
     obtenerUsuarioPorId,
     obtenerUsuarioPorEmail,
-    registrarUsuario,
+    crearUsuarioController,
     modificarUsuario,
     desactivarUsuarioController,
     reactivarUsuarioController,
@@ -18,7 +18,7 @@ import {
 
 const router = Router()
 
-router.post('/', registrarUsuario)
+router.post('/', verificarToken, verificarRol('ADMIN'), crearUsuarioController)
 
 router.get('/', verificarToken, verificarRol('ADMIN'), obtenerUsuarios)
 

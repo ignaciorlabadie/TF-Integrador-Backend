@@ -12,6 +12,12 @@ app.use(express.json())
 app.use(routes)
 app.use(errorHandler)
 
+app.get('/', (_req, res) => {
+    res.status(200).json({
+        mensaje: 'API del sistema de turnos',
+    })
+})
+
 app.get('/health', async (_req, res) => {
     try {
         await sequelize.authenticate()

@@ -1,10 +1,13 @@
-import bcrypt from 'bcryptjs'
+import { UniqueConstraintError } from 'sequelize'
 
 import { Paciente, Usuario } from '../models/index.js'
 import sequelize from '../config/database.js'
+import { crearCuenta } from './usuarioService.js'
 import type { CrearPaciente } from '../types/CrearPaciente.js'
 import type { ActualizarPaciente } from '../types/ActualizarPaciente.js'
 import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
+import { normalizarEmail } from '../utils/validacion.js'
 
 const atributosUsuario = {
     attributes: { exclude: ['password'] },
@@ -49,48 +52,47 @@ export async function buscarPacientePorUsuarioId(usuarioId: number) {
 }
 
 export async function crearPaciente(datos: CrearPaciente) {
-    const email = datos.email.trim().toLowerCase()
-
-    const usuarioExistente = await Usuario.findOne({
-        where: { email },
-    })
-
-    if (usuarioExistente) {
-        throw new AppError(409, 'El email ya está registrado')
-    }
-
-    const pacienteExistente = await Paciente.findOne({
-        where: { dni: datos.dni },
-    })
-
-    if (pacienteExistente) {
-        throw new AppError(409, 'El DNI ya está registrado')
-    }
-
-    const passwordHasheada = await bcrypt.hash(datos.password, 10)
+    const email = normalizarEmail(datos.email)
 
     const paciente = await sequelize.transaction(async (transaction) => {
-        const usuario = await Usuario.create(
+        const pacienteExistente = await Paciente.findOne({
+            where: { dni: datos.dni },
+            transaction,
+        })
+
+        if (pacienteExistente) {
+            throw new AppError(409, MENSAJES.DNI_YA_REGISTRADO)
+        }
+
+        const usuario = await crearCuenta(
             {
                 email,
-                password: passwordHasheada,
+                password: datos.password,
                 rol: 'PACIENTE',
             },
             { transaction },
         )
 
-        return Paciente.create(
-            {
-                usuarioId: usuario.id,
-                nombre: datos.nombre,
-                apellido: datos.apellido,
-                dni: datos.dni,
-                telefono: datos.telefono,
-                fechaNacimiento: datos.fechaNacimiento,
-                direccion: datos.direccion,
-            },
-            { transaction },
-        )
+        try {
+            return await Paciente.create(
+                {
+                    usuarioId: usuario.id,
+                    nombre: datos.nombre,
+                    apellido: datos.apellido,
+                    dni: datos.dni,
+                    telefono: datos.telefono,
+                    fechaNacimiento: datos.fechaNacimiento,
+                    direccion: datos.direccion,
+                },
+                { transaction },
+            )
+        } catch (error) {
+            if (error instanceof UniqueConstraintError) {
+                throw new AppError(409, MENSAJES.DNI_YA_REGISTRADO)
+            }
+
+            throw error
+        }
     })
 
     return Paciente.findByPk(paciente.id, {
@@ -120,7 +122,7 @@ export async function actualizarPaciente(
         })
 
         if (pacienteExistente && pacienteExistente.id !== id) {
-            throw new AppError(409, 'El DNI ya está registrado')
+            throw new AppError(409, MENSAJES.DNI_YA_REGISTRADO)
         }
 
         paciente.dni = datos.dni

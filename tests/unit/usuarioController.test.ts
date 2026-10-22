@@ -25,11 +25,13 @@ import {
     obtenerUsuarios,
     obtenerUsuarioPorId,
     obtenerUsuarioPorEmail,
-    registrarUsuario,
+    crearUsuarioController,
     modificarUsuario,
     desactivarUsuarioController,
     reactivarUsuarioController,
 } from '../../src/controllers/usuarioController.js'
+
+import { MENSAJES } from '../../src/errors/mensajes.js'
 
 type UsuarioToken = {
     id: number
@@ -161,86 +163,157 @@ describe('usuarioController', () => {
         })
     })
 
-    it('debe registrar un usuario', async () => {
+    it.each(['PROFESIONAL', 'ADMIN'] as const)(
+        'debe crear un usuario con rol %s',
+        async (rol) => {
+            const usuario = {
+                id: 1,
+                email: 'usuario@example.com',
+                rol,
+                activo: true,
+            }
+
+            vi.mocked(crearUsuario).mockResolvedValue(usuario as never)
+
+            const { req, res } = crearMocks({
+                email: 'usuario@example.com',
+                password: 'Password123',
+                rol,
+            })
+
+            await crearUsuarioController(req, res)
+
+            expect(crearUsuario).toHaveBeenCalledWith({
+                email: 'usuario@example.com',
+                password: 'Password123',
+                rol,
+            })
+            expect(res.status).toHaveBeenCalledWith(201)
+            expect(res.json).toHaveBeenCalledWith(usuario)
+        },
+    )
+
+    it('debe crear un usuario desactivado', async () => {
         const usuario = {
             id: 1,
             email: 'usuario@example.com',
-            rol: 'PACIENTE',
-            activo: true,
+            rol: 'PROFESIONAL',
+            activo: false,
         }
 
         vi.mocked(crearUsuario).mockResolvedValue(usuario as never)
 
         const { req, res } = crearMocks({
             email: 'usuario@example.com',
-            password: '12345678',
-            rol: 'PACIENTE',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+            activo: false,
         })
 
-        await registrarUsuario(req, res)
+        await crearUsuarioController(req, res)
 
         expect(crearUsuario).toHaveBeenCalledWith({
             email: 'usuario@example.com',
-            password: '12345678',
-            rol: 'PACIENTE',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+            activo: false,
         })
-        expect(res.status).toHaveBeenCalledWith(201)
-        expect(res.json).toHaveBeenCalledWith(usuario)
     })
 
-    it('debe rechazar un email inválido al registrar', async () => {
+    it('debe rechazar el alta de un paciente', async () => {
         const { req, res } = crearMocks({
-            email: 'no-es-un-email',
-            password: '12345678',
+            email: 'paciente@example.com',
+            password: 'Password123',
             rol: 'PACIENTE',
         })
 
-        await expect(registrarUsuario(req, res)).rejects.toMatchObject({
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
+            statusCode: 400,
+            message: MENSAJES.ALTA_PACIENTE_EN_PACIENTES,
+        })
+
+        expect(crearUsuario).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un rol inválido', async () => {
+        const { req, res } = crearMocks({
+            email: 'usuario@example.com',
+            password: 'Password123',
+            rol: 'SUPERVISOR',
+        })
+
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
             statusCode: 400,
         })
 
         expect(crearUsuario).not.toHaveBeenCalled()
     })
 
-    it('debe rechazar una contraseña corta al registrar', async () => {
+    it('debe rechazar un email inválido al crear', async () => {
+        const { req, res } = crearMocks({
+            email: 'no-es-un-email',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+        })
+
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
+            statusCode: 400,
+        })
+
+        expect(crearUsuario).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una contraseña corta al crear', async () => {
         const { req, res } = crearMocks({
             email: 'usuario@example.com',
             password: 'corta',
-            rol: 'PACIENTE',
+            rol: 'PROFESIONAL',
         })
 
-        await expect(registrarUsuario(req, res)).rejects.toMatchObject({
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
             statusCode: 400,
         })
 
         expect(crearUsuario).not.toHaveBeenCalled()
     })
 
-    it.each(['ADMIN', 'PROFESIONAL'])(
-        'debe rechazar el registro público con rol %s',
-        async (rol) => {
-            const { req, res } = crearMocks({
-                email: 'usuario@test.com',
-                password: 'Password123!',
-                rol,
-            })
-
-            await expect(registrarUsuario(req, res)).rejects.toMatchObject({
-                statusCode: 400,
-            })
-
-            expect(crearUsuario).not.toHaveBeenCalled()
-        },
-    )
-
-    it('debe rechazar datos inválidos al registrar', async () => {
+    it('debe rechazar una contraseña más larga que el límite de bcrypt', async () => {
         const { req, res } = crearMocks({
-            email: '',
-            password: '12345678',
-            rol: 'PACIENTE',
+            email: 'usuario@example.com',
+            password: 'a'.repeat(73),
+            rol: 'PROFESIONAL',
         })
 
-        await expect(registrarUsuario(req, res)).rejects.toMatchObject({
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
+            statusCode: 400,
+        })
+
+        expect(crearUsuario).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un campo activo que no sea booleano', async () => {
+        const { req, res } = crearMocks({
+            email: 'usuario@example.com',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+            activo: 'sí',
+        })
+
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
+            statusCode: 400,
+        })
+
+        expect(crearUsuario).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar datos inválidos al crear', async () => {
+        const { req, res } = crearMocks({
+            email: '',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+        })
+
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
             statusCode: 400,
         })
 
@@ -256,11 +329,11 @@ describe('usuarioController', () => {
 
         const { req, res } = crearMocks({
             email: 'usuario@example.com',
-            password: '12345678',
-            rol: 'PACIENTE',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
         })
 
-        await expect(registrarUsuario(req, res)).rejects.toMatchObject({
+        await expect(crearUsuarioController(req, res)).rejects.toMatchObject({
             statusCode: 409,
         })
     })

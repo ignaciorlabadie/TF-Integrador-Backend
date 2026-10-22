@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express'
+import { UniqueConstraintError } from 'sequelize'
 
 import { AppError } from '../errors/AppError.js'
 
@@ -19,6 +20,12 @@ export function errorHandler(
 
         return res.status(error.statusCode).json({
             mensaje: error.message,
+        })
+    }
+
+    if (error instanceof UniqueConstraintError) {
+        return res.status(409).json({
+            mensaje: 'Ya existe un registro con esos datos',
         })
     }
 

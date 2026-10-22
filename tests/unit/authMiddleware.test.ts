@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { Request, Response, NextFunction } from 'express'
 import jwt from 'jsonwebtoken'
 import { verificarToken } from '../../src/middlewares/authMiddleware.js'
+import { AppError } from '../../src/errors/AppError.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
 
@@ -22,6 +23,16 @@ function crearMocks(authorization?: string) {
     return { req, res, next }
 }
 
+function capturarError(fn: () => void): unknown {
+    try {
+        fn()
+    } catch (error) {
+        return error
+    }
+
+    return undefined
+}
+
 describe('verificarToken', () => {
     beforeEach(() => {
         vi.stubEnv('JWT_SECRET', JWT_SECRET)
@@ -31,31 +42,33 @@ describe('verificarToken', () => {
         vi.unstubAllEnvs()
     })
 
-    it('debe responder 401 si falta el token', () => {
+    it('debe lanzar 401 si falta el token', () => {
         const { req, res, next } = crearMocks()
 
-        verificarToken(req, res, next)
+        const error = capturarError(() => verificarToken(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Token de autenticación requerido',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token de autorización requerido',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 401 si el token es inválido', () => {
+    it('debe lanzar 401 si el token es inválido', () => {
         const { req, res, next } = crearMocks('Bearer token-invalido')
 
-        verificarToken(req, res, next)
+        const error = capturarError(() => verificarToken(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Token inválido o expirado',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token inválido o expirado',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 401 si el token expiró', () => {
+    it('debe lanzar 401 si el token expiró', () => {
         const token = jwt.sign(
             { id: 1, email: 'paciente@test.com', rol: 'PACIENTE' },
             JWT_SECRET,
@@ -64,30 +77,32 @@ describe('verificarToken', () => {
 
         const { req, res, next } = crearMocks(`Bearer ${token}`)
 
-        verificarToken(req, res, next)
+        const error = capturarError(() => verificarToken(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Token inválido o expirado',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token inválido o expirado',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 500 si falta JWT_SECRET', () => {
+    it('debe lanzar 500 si falta JWT_SECRET', () => {
         vi.stubEnv('JWT_SECRET', '')
 
         const { req, res, next } = crearMocks('Bearer cualquier-token')
 
-        verificarToken(req, res, next)
+        const error = capturarError(() => verificarToken(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(500)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Error interno del servidor',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 500,
+            message: 'JWT_SECRET no está configurado',
         })
         expect(next).not.toHaveBeenCalled()
     })
 
-    it('debe responder 401 si el token tiene datos inválidos', () => {
+    it('debe lanzar 401 si el token tiene datos inválidos', () => {
         const token = jwt.sign(
             {
                 id: 'no-es-un-numero',
@@ -99,11 +114,12 @@ describe('verificarToken', () => {
 
         const { req, res, next } = crearMocks(`Bearer ${token}`)
 
-        verificarToken(req, res, next)
+        const error = capturarError(() => verificarToken(req, res, next))
 
-        expect(res.status).toHaveBeenCalledWith(401)
-        expect(res.json).toHaveBeenCalledWith({
-            mensaje: 'Token de autenticación inválido',
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token de autenticación inválido',
         })
         expect(next).not.toHaveBeenCalled()
     })

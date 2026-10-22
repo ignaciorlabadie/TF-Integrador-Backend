@@ -10,11 +10,11 @@ import {
     reactivarUsuario,
 } from '../services/usuarioService.js'
 
-import { ROLES } from '../types/Rol.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { esEmailValido, esPasswordValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
+import { validarCrearUsuario } from '../validators/validarCrearUsuario.js'
 
 export async function obtenerUsuarios(_req: Request, res: Response) {
     const usuarios = await listarUsuarios()
@@ -23,7 +23,7 @@ export async function obtenerUsuarios(_req: Request, res: Response) {
 }
 
 export async function obtenerUsuarioPorId(req: Request, res: Response) {
-    const id = validarId(req)
+    const id = validarId(req.params.id)
 
     const usuario = await buscarUsuarioPorId(id)
 
@@ -50,27 +50,25 @@ export async function obtenerUsuarioPorEmail(req: Request, res: Response) {
     return res.status(200).json(usuario)
 }
 
-export async function registrarUsuario(req: Request, res: Response) {
-    const { email, password, rol } = req.body
+/**
+ * Alta de cuentas por parte de un administrador. Los pacientes no se dan de
+ * alta acá: su registro público es POST /pacientes, que crea el usuario y su
+ * perfil en una sola transacción.
+ */
+export async function crearUsuarioController(req: Request, res: Response) {
+    const validacion = validarCrearUsuario(req.body)
 
-    if (
-        typeof email !== 'string' ||
-        !esEmailValido(email.trim()) ||
-        typeof password !== 'string' ||
-        !esPasswordValida(password) ||
-        !ROLES.includes(rol)
-    ) {
-        throw new AppError(400, 'Datos de usuario inválidos')
+    if (!validacion.ok) {
+        throw new AppError(400, validacion.mensaje)
     }
 
-    if (rol !== 'PACIENTE') {
-        throw new AppError(
-            400,
-            'El registro público solo permite crear pacientes',
-        )
+    const { datos } = validacion
+
+    if (datos.rol === 'PACIENTE') {
+        throw new AppError(400, MENSAJES.ALTA_PACIENTE_EN_PACIENTES)
     }
 
-    const usuario = await crearUsuario({ email, password, rol })
+    const usuario = await crearUsuario(datos)
 
     return res.status(201).json(usuario)
 }

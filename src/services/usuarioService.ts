@@ -1,47 +1,98 @@
+import { UniqueConstraintError } from 'sequelize'
+import type { Transaction } from 'sequelize'
+
 import Usuario from '../models/Usuario.js'
-import bcrypt from 'bcryptjs'
+import type { CrearCuenta } from '../types/CrearCuenta.js'
 import type { CrearUsuario } from '../types/CrearUsuario.js'
 import type { ActualizarUsuario } from '../types/ActualizarUsuario.js'
 import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
+import { hashPassword } from '../utils/passwords.js'
+import { normalizarEmail } from '../utils/validacion.js'
+
+const atributosUsuario = {
+    attributes: { exclude: ['password'] },
+}
+
+function opcionesTransaccion(transaction?: Transaction): {
+    transaction?: Transaction
+} {
+    if (!transaction) {
+        return {}
+    }
+
+    return { transaction }
+}
 
 export async function listarUsuarios() {
     return Usuario.findAll({
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
 
 export async function buscarUsuarioPorId(id: number) {
     return Usuario.findByPk(id, {
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
 
 export async function buscarUsuarioPorEmail(email: string) {
-    const usuarioMail = email.trim().toLowerCase()
+    const usuarioMail = normalizarEmail(email)
 
     return Usuario.findOne({
         where: { email: usuarioMail },
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
 
-export async function crearUsuario(datos: CrearUsuario) {
-    const email = datos.email.trim().toLowerCase()
+/**
+ * Primitiva única de alta de cuenta: normaliza el email, verifica que no
+ * exista, hashea la contraseña e inserta el usuario. Si se pasa una
+ * transacción, la usa para que el alta forme parte de un lote atómico
+ * (cuenta + perfil).
+ */
+export async function crearCuenta(
+    datos: CrearCuenta,
+    opciones: { transaction?: Transaction } = {},
+) {
+    const email = normalizarEmail(datos.email)
 
     const usuarioExistente = await Usuario.findOne({
         where: { email },
+        ...opcionesTransaccion(opciones.transaction),
     })
 
     if (usuarioExistente) {
-        throw new AppError(409, 'El email ya está registrado')
+        throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
     }
 
-    const passwordHasheada = await bcrypt.hash(datos.password, 10)
+    const passwordHasheada = await hashPassword(datos.password)
 
-    const usuario = await Usuario.create({
-        email,
-        password: passwordHasheada,
+    try {
+        return await Usuario.create(
+            {
+                email,
+                password: passwordHasheada,
+                rol: datos.rol,
+                ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
+            },
+            opcionesTransaccion(opciones.transaction),
+        )
+    } catch (error) {
+        if (error instanceof UniqueConstraintError) {
+            throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+        }
+
+        throw error
+    }
+}
+
+export async function crearUsuario(datos: CrearUsuario) {
+    const usuario = await crearCuenta({
+        email: datos.email,
+        password: datos.password,
         rol: datos.rol,
+        ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
     })
 
     return {
@@ -60,14 +111,14 @@ export async function actualizarUsuario(id: number, datos: ActualizarUsuario) {
     }
 
     if (datos.email !== undefined) {
-        const email = datos.email.trim().toLowerCase()
+        const email = normalizarEmail(datos.email)
 
         const usuarioExistente = await Usuario.findOne({
             where: { email },
         })
 
         if (usuarioExistente && usuarioExistente.id !== id) {
-            throw new AppError(409, 'El email ya está registrado')
+            throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
         }
 
         usuario.email = email
@@ -78,13 +129,21 @@ export async function actualizarUsuario(id: number, datos: ActualizarUsuario) {
     }
 
     if (datos.password !== undefined) {
-        usuario.password = await bcrypt.hash(datos.password, 10)
+        usuario.password = await hashPassword(datos.password)
     }
 
-    await usuario.save()
+    try {
+        await usuario.save()
+    } catch (error) {
+        if (error instanceof UniqueConstraintError) {
+            throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+        }
+
+        throw error
+    }
 
     return Usuario.findByPk(id, {
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
 
@@ -105,7 +164,7 @@ export async function desactivarUsuario(id: number) {
     await usuario.save()
 
     return Usuario.findByPk(id, {
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
 
@@ -125,6 +184,6 @@ export async function reactivarUsuario(id: number) {
     await usuario.save()
 
     return Usuario.findByPk(id, {
-        attributes: { exclude: ['password'] },
+        ...atributosUsuario,
     })
 }
