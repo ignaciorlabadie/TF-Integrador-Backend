@@ -88,41 +88,94 @@ npm run db:migrate
 ```text
 sistema-de-turnos/
 ├──.husky
-├── src/
-    ├── config/
-    ├── controllers/
-    ├── database/
-        ├── migrations/
-    ├── docs/
-        ├── desiciones-diseño.md
-    ├── errors/
-    ├── facades/
-    ├── middlewares/
-    ├── models/
-    ├── routes/
-    ├── services/
-    ├── types/
-    ├── utils/
-    ├── app.ts
-    └── server.ts
-├── tests/
-├── .dockerignore
-├── .env
-├── .env.example
-├── .gitignore
-├── .nvmrc
-├── .prettierignore
-├── .prettierrc
-├── docker-compose.yml
-├── Dockerfile
-├── eslint.config.js
-├── package-lock.json
-├── package.json
-├── README.md
-├── tsconfig.json
-├── tsconfig.test.json
-└── vitest.config.ts
+├──src/
+│   ├── config/
+│   ├── controllers/
+│   ├── database/
+│   │   ├── migrations/
+│   │   └── seeders/
+│   ├── docs/
+│   ├── errors/
+│   ├── middlewares/
+│   ├── models/
+│   ├── routes/
+│   ├── services/
+│   ├── types/
+│   ├── utils/
+│   ├── validators/
+│   ├── app.ts
+│   └── server.ts
+├──tests/
+│   ├── helpers/
+│   ├── integration/
+│   └── unit/
+├──.dockerignore
+├──.env
+├──.env.example
+├──.gitignore
+├──.nvmrc
+├──.prettierignore
+├──.prettierrc
+├──docker-compose.yml
+├──Dockerfile
+├──eslint.config.js
+├──package-lock.json
+├──package.json
+├──README.md
+└──tsconfig.json
 ```
+
+## Flujo de alta de usuarios
+
+El rol de una cuenta **no lo decide el cliente**: se define por el endpoint que
+se usa. Cada endpoint tiene una única semántica de rol.
+
+| Endpoint | Acceso | Rol | Crea |
+| --- | --- | --- | --- |
+| `POST /pacientes` | público | `PACIENTE` (implícito) | `users` + `pacientes`, en una sola transacción |
+| `POST /usuarios` | `Bearer` + rol `ADMIN` | `PROFESIONAL` o `ADMIN` (explícito en el body) | `users` |
+| `GET /roles` | público | — | — (lista los roles disponibles) |
+
+Reglas del flujo:
+
+- El registro público es **únicamente** el de pacientes (`POST /pacientes`),
+  que crea el usuario y su perfil juntos. Un paciente siempre tiene perfil.
+- Las cuentas `PROFESIONAL` y `ADMIN` las crea un administrador autenticado
+  en `POST /usuarios`. El body incluye `rol` y, opcionalmente, `activo: false`
+  para pre-crear una cuenta inactiva.
+- Intentar dar de alta un paciente por `POST /usuarios` devuelve `400` con el
+  mensaje indicando que el alta de pacientes se hace en `POST /pacientes`.
+- El primer usuario `ADMIN` se crea con los seeders
+  (`admin@tfi.local.com` / `Password123`).
+- La creación de usuario y perfil es atómica: si algo falla, no queda ni la
+  cuenta ni el perfil.
+
+Payloads:
+
+```jsonc
+// POST /pacientes
+{
+    "email": "paciente@example.com",
+    "password": "Password123",
+    "nombre": "Ana",
+    "apellido": "Gomez",
+    "dni": "12345678",
+    "telefono": "+5491112345678",
+    "fechaNacimiento": "1990-05-14",
+    "direccion": "Calle Falsa 123"
+}
+
+// POST /usuarios (Bearer de un ADMIN)
+{
+    "email": "profesional@example.com",
+    "password": "Password123",
+    "rol": "PROFESIONAL"
+}
+```
+
+Los errores siempre responden `{ "mensaje": "..." }` con los códigos `400`
+(validación), `401` (sin autenticación), `403` (sin permisos), `404` (no
+encontrado) y `409` (email o DNI ya registrados).
 
 ## Estado del proyecto
 
