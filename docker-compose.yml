@@ -31,6 +31,8 @@ services:
             DB_NAME: tfi_turnos
             DB_USER: postgres
             DB_PASSWORD: postgres
+            JWT_SECRET: ${JWT_SECRET:-clave}
+            JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
 
     pgadmin:
         image: dpage/pgadmin4
