@@ -9,11 +9,19 @@ const EXTENSIONES_POR_TIPO: Record<string, string> = {
     'image/png': 'png',
 }
 
+function requireSupabase() {
+    if (!supabase) {
+        throw new AppError(503, 'Almacenamiento de archivos no disponible en este entorno')
+    }
+}
+
 export async function subirArchivoEstudio(
     buffer: Buffer,
     contentType: string,
     pacienteId: number,
 ): Promise<string> {
+    requireSupabase()
+
     const extension = EXTENSIONES_POR_TIPO[contentType]
 
     if (!extension) {
@@ -22,7 +30,7 @@ export async function subirArchivoEstudio(
 
     const path = `estudios/${pacienteId}/${randomUUID()}.${extension}`
 
-    const { error } = await supabase.storage.from(SUPABASE_BUCKET).upload(path, buffer, {
+    const { error } = await supabase!.storage.from(SUPABASE_BUCKET).upload(path, buffer, {
         contentType,
     })
 
@@ -34,7 +42,7 @@ export async function subirArchivoEstudio(
 }
 
 export async function eliminarArchivoEstudio(path: string | null): Promise<void> {
-    if (!path) return
+    if (!path || !supabase) return
 
     const { error } = await supabase.storage.from(SUPABASE_BUCKET).remove([path])
 
@@ -47,10 +55,10 @@ export async function crearUrlFirmada(
     path: string,
     ttl: number = SUPABASE_SIGNED_URL_TTL,
 ): Promise<{ url: string; expiresIn: number }> {
-   const { data, error } = await supabase.storage
-    .from(SUPABASE_BUCKET)
-    .createSignedUrl(path, ttl)
-    
+    requireSupabase()
+
+    const { data, error } = await supabase!.storage.from(SUPABASE_BUCKET).createSignedUrl(path, ttl)
+
     if (error || !data?.signedUrl) {
         throw new AppError(502, 'No se pudo generar la URL firmada')
     }
