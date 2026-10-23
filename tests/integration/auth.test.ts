@@ -42,7 +42,7 @@ afterEach(() => {
     vi.unstubAllEnvs()
 })
 
-describe('POST /auth/login', () => {
+describe('POST /api/auth/login', () => {
     it('debe iniciar sesión correctamente', async () => {
         const hash = await bcrypt.hash('12345678', 10)
 
@@ -90,7 +90,7 @@ describe('POST /auth/login', () => {
 
     it('debe rechazar datos faltantes', async () => {
         const respuesta = await request(app)
-            .post('/auth/login')
+            .post('/api/auth/login')
             .send({ email: 'usuario@example.com' })
 
         expect(respuesta.status).toBe(400)
@@ -98,7 +98,7 @@ describe('POST /auth/login', () => {
     })
 })
 
-describe('GET /auth/me', () => {
+describe('GET /api/auth/me', () => {
     it('debe devolver el perfil del usuario autenticado', async () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue({
             id: 1,
@@ -108,7 +108,7 @@ describe('GET /auth/me', () => {
         } as never)
 
         const respuesta = await request(app)
-            .get('/auth/me')
+            .get('/api/auth/me')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(200)
@@ -121,7 +121,7 @@ describe('GET /auth/me', () => {
     })
 
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).get('/auth/me')
+        const respuesta = await request(app).get('/api/auth/me')
 
         expect(respuesta.status).toBe(401)
     })

@@ -59,7 +59,7 @@ afterEach(() => {
     vi.unstubAllEnvs()
 })
 
-describe('POST /pacientes', () => {
+describe('POST /api/pacientes', () => {
     it('debe registrar un paciente creando usuario y perfil en una transacción', async () => {
         vi.mocked(pacienteModel.findOne).mockResolvedValue(null)
         vi.mocked(usuarioModel.findOne).mockResolvedValue(null)
@@ -87,7 +87,7 @@ describe('POST /pacientes', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send(datosPaciente)
 
         expect(respuesta.status).toBe(201)
@@ -127,7 +127,7 @@ describe('POST /pacientes', () => {
         } as never)
 
         await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send({ ...datosPaciente, email: '  Paciente@Test.com  ' })
 
         expect(usuarioModel.create).toHaveBeenCalledWith(
@@ -138,7 +138,7 @@ describe('POST /pacientes', () => {
 
     it('debe rechazar un email inválido', async () => {
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send({ ...datosPaciente, email: 'no-es-un-email' })
 
         expect(respuesta.status).toBe(400)
@@ -148,7 +148,7 @@ describe('POST /pacientes', () => {
 
     it('debe rechazar un DNI inválido', async () => {
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send({ ...datosPaciente, dni: '123' })
 
         expect(respuesta.status).toBe(400)
@@ -157,7 +157,7 @@ describe('POST /pacientes', () => {
 
     it('debe rechazar una fecha de nacimiento futura', async () => {
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send({ ...datosPaciente, fechaNacimiento: '2099-01-01' })
 
         expect(respuesta.status).toBe(400)
@@ -172,7 +172,7 @@ describe('POST /pacientes', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send(datosPaciente)
 
         expect(respuesta.status).toBe(409)
@@ -187,7 +187,7 @@ describe('POST /pacientes', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/pacientes')
+            .post('/api/pacientes')
             .send(datosPaciente)
 
         expect(respuesta.status).toBe(409)

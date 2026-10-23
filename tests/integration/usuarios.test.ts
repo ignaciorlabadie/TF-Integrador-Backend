@@ -52,7 +52,7 @@ afterEach(() => {
 
 describe('POST /usuarios', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).post('/usuarios').send({
+        const respuesta = await request(app).post('/api/usuarios').send({
             email: 'profesional@test.com',
             password: 'Password123',
             rol: 'PROFESIONAL',
@@ -180,7 +180,7 @@ describe('POST /usuarios', () => {
 
 describe('GET /usuarios', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).get('/usuarios')
+        const respuesta = await request(app).get('/api/usuarios')
 
         expect(respuesta.status).toBe(401)
     })
@@ -205,7 +205,7 @@ describe('GET /usuarios', () => {
     })
 })
 
-describe('GET /usuarios/:id', () => {
+describe('GET /api/usuarios/:id', () => {
     it('debe permitir al propio usuario ver su perfil', async () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue({
             id: 1,
@@ -215,7 +215,7 @@ describe('GET /usuarios/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .get('/usuarios/1')
+            .get('/api/usuarios/1')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(200)
@@ -224,7 +224,7 @@ describe('GET /usuarios/:id', () => {
 
     it('debe impedir que un paciente vea a otro usuario', async () => {
         const respuesta = await request(app)
-            .get('/usuarios/2')
+            .get('/api/usuarios/2')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(403)
@@ -240,14 +240,14 @@ describe('GET /usuarios/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .get('/usuarios/2')
+            .get('/api/usuarios/2')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(200)
     })
 })
 
-describe('PUT /usuarios/:id', () => {
+describe('PUT /api/usuarios/:id', () => {
     it('debe permitir al propio usuario cambiar su contraseña', async () => {
         const usuario = {
             id: 1,
@@ -261,7 +261,7 @@ describe('PUT /usuarios/:id', () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
-            .put('/usuarios/1')
+            .put('/api/usuarios/1')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
             .send({ password: 'nueva-clave-123' })
 
@@ -271,7 +271,7 @@ describe('PUT /usuarios/:id', () => {
 
     it('debe impedir que un usuario no admin modifique el campo activo', async () => {
         const respuesta = await request(app)
-            .put('/usuarios/1')
+            .put('/api/usuarios/1')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
             .send({ activo: false })
 
@@ -279,7 +279,7 @@ describe('PUT /usuarios/:id', () => {
     })
 })
 
-describe('PATCH /usuarios/:id/desactivar', () => {
+describe('PATCH /api/usuarios/:id/desactivar', () => {
     it('debe desactivar un usuario como administrador', async () => {
         const usuario = {
             id: 1,
@@ -291,7 +291,7 @@ describe('PATCH /usuarios/:id/desactivar', () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
-            .patch('/usuarios/1/desactivar')
+            .patch('/api/usuarios/1/desactivar')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(200)
@@ -299,7 +299,7 @@ describe('PATCH /usuarios/:id/desactivar', () => {
     })
 })
 
-describe('PATCH /usuarios/:id/reactivar', () => {
+describe('PATCH /api/usuarios/:id/reactivar', () => {
     it('debe reactivar un usuario como administrador', async () => {
         const usuario = {
             id: 1,
@@ -311,7 +311,7 @@ describe('PATCH /usuarios/:id/reactivar', () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue(usuario as never)
 
         const respuesta = await request(app)
-            .patch('/usuarios/1/reactivar')
+            .patch('/api/usuarios/1/reactivar')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(200)
@@ -319,9 +319,9 @@ describe('PATCH /usuarios/:id/reactivar', () => {
     })
 })
 
-describe('GET /roles', () => {
+describe('GET /api/roles', () => {
     it('debe listar los roles disponibles', async () => {
-        const respuesta = await request(app).get('/roles')
+        const respuesta = await request(app).get('/api/roles')
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body).toEqual(['PACIENTE', 'PROFESIONAL', 'ADMIN'])
