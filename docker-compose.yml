@@ -3,15 +3,15 @@ services:
         image: postgres:16-alpine
         restart: always
         environment:
-            POSTGRES_USER: postgres
-            POSTGRES_PASSWORD: postgres
-            POSTGRES_DB: tfi_turnos
+            POSTGRES_USER: ${DB_USER}
+            POSTGRES_PASSWORD: ${DB_PASSWORD}
+            POSTGRES_DB: ${DB_NAME}
         ports:
             - '5432:5432'
         volumes:
             - pg_data:/var/lib/postgresql/data
         healthcheck:
-            test: ['CMD-SHELL', 'pg_isready -U postgres -d tfi_turnos']
+            test: ['CMD-SHELL', 'pg_isready -U ${DB_USER} -d ${DB_NAME}']
             interval: 5s
             timeout: 5s
             retries: 5
@@ -28,11 +28,11 @@ services:
             PORT: 3000
             DB_HOST: db
             DB_PORT: 5432
-            DB_NAME: tfi_turnos
-            DB_USER: postgres
-            DB_PASSWORD: postgres
-            JWT_SECRET: ${JWT_SECRET:-clave}
-            JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+            DB_NAME: ${DB_NAME}
+            DB_USER: ${DB_USER}
+            DB_PASSWORD: ${DB_PASSWORD}
+            JWT_SECRET: ${JWT_SECRET}
+            JWT_EXPIRES_IN: ${JWT_EXPIRES_IN}
 
     pgadmin:
         image: dpage/pgadmin4
@@ -40,8 +40,8 @@ services:
         ports:
             - '8080:80'
         environment:
-            PGADMIN_DEFAULT_EMAIL: admin@local.com
-            PGADMIN_DEFAULT_PASSWORD: admin123
+            PGADMIN_DEFAULT_EMAIL: ${PGADMIN_DEFAULT_EMAIL}
+            PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD}
         depends_on:
             db:
                 condition: service_healthy
