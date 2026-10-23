@@ -1,17 +1,19 @@
 import type { Request, Response } from 'express'
-
+import { subirArchivoEstudio, crearUrlFirmada } from '../services/storageService.js'
 import {
     listarEstudios,
     buscarEstudioPorId,
     obtenerEstudiosPorPaciente,
     crearEstudio,
-    adjuntarArchivoEstudio,
     actualizarArchivoEstudio,
 } from '../services/estudioService.js'
-
 import { AppError } from '../errors/AppError.js'
-import { esUrlValida, esFechaValida } from '../utils/validacion.js'
+import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
+
+interface MulterRequest extends Request {
+    file?: Express.Multer.File
+}
 
 export async function obtenerEstudios(_req: Request, res: Response) {
     const estudios = await listarEstudios()
@@ -39,64 +41,80 @@ export async function obtenerEstudiosPaciente(req: Request, res: Response) {
 }
 
 export async function registrarEstudio(req: Request, res: Response) {
-    const { pacienteId, tipo, fecha, descripcion, archivoURL } = req.body
+    const multerReq = req as MulterRequest
+    const file = multerReq.file
+    const { pacienteId, tipo, fecha, descripcion } = req.body as {
+        pacienteId: string
+        tipo: string
+        fecha: string
+        descripcion: string
+    }
 
-    // Reutilizamos validarId para pacienteId
     const idPacienteNum = validarId(pacienteId, 'ID del paciente')
 
     if (typeof tipo !== 'string' || tipo.trim().length === 0) {
         throw new AppError(400, 'El tipo de estudio es obligatorio')
     }
 
-    // Validación estricta con DATEONLY / FECHA_REGEX
     if (typeof fecha !== 'string' || !esFechaValida(fecha)) {
-        throw new AppError(
-            400,
-            'La fecha del estudio debe tener el formato YYYY-MM-DD',
-        )
+        throw new AppError(400, 'La fecha del estudio debe tener el formato YYYY-MM-DD')
     }
 
-    if (descripcion !== undefined && typeof descripcion !== 'string') {
-        throw new AppError(400, 'La descripción debe ser una cadena de texto')
+    if (typeof descripcion !== 'string' || descripcion.trim().length === 0) {
+        throw new AppError(400, 'La descripción es obligatoria')
     }
 
-    if (archivoURL !== undefined && !esUrlValida(archivoURL)) {
-        throw new AppError(400, 'La URL del archivo es inválida')
-    }
+    const archivoURL = file
+        ? await subirArchivoEstudio(file.buffer, file.mimetype, idPacienteNum)
+        : null
 
     const estudio = await crearEstudio({
         pacienteId: idPacienteNum,
         tipo: tipo.trim(),
         fecha,
-        descripcion: descripcion?.trim(),
-        archivoUrl: archivoURL?.trim(),
+        descripcion: descripcion.trim(),
+        archivoURL,
     })
 
     return res.status(201).json(estudio)
 }
 
-export async function adjuntarArchivo(req: Request, res: Response) {
+export async function modificarArchivo(req: Request, res: Response) {
+    const multerReq = req as MulterRequest
     const id = validarId(req.params.id)
-    const { archivoURL } = req.body
+    const file = multerReq.file
 
-    if (!esUrlValida(archivoURL)) {
-        throw new AppError(400, 'Debe proporcionar una URL de archivo válida')
+    if (!file) {
+        throw new AppError(400, 'Debe proporcionar un archivo')
     }
 
-    const estudio = await adjuntarArchivoEstudio(id, archivoURL.trim())
+    const estudio = await buscarEstudioPorId(id)
 
-    return res.status(200).json(estudio)
+    if (!estudio) {
+        throw new AppError(404, 'Estudio no encontrado')
+    }
+
+    const archivoURL = await subirArchivoEstudio(file.buffer, file.mimetype, estudio.pacienteId)
+
+    const actualizado = await actualizarArchivoEstudio(id, archivoURL)
+
+    return res.status(200).json(actualizado)
 }
 
-export async function modificarArchivo(req: Request, res: Response) {
+export async function obtenerArchivo(req: Request, res: Response) {
     const id = validarId(req.params.id)
-    const { archivoURL } = req.body
 
-    if (!esUrlValida(archivoURL)) {
-        throw new AppError(400, 'Debe proporcionar una URL de archivo válida')
+    const estudio = await buscarEstudioPorId(id)
+
+    if (!estudio) {
+        throw new AppError(404, 'Estudio no encontrado')
     }
 
-    const estudio = await actualizarArchivoEstudio(id, archivoURL.trim())
+    if (!estudio.archivoURL) {
+        throw new AppError(404, 'El estudio no tiene un archivo asociado')
+    }
 
-    return res.status(200).json(estudio)
+    const { url, expiresIn } = await crearUrlFirmada(estudio.archivoURL)
+
+    return res.status(200).json({ url, expiresIn })
 }
