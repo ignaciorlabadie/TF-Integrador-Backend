@@ -3,7 +3,6 @@ import cors from 'cors'
 import express from 'express'
 import sequelize from './config/database.js'
 import routes from './routes/index.js'
-import profesionalRoutes from './routes/profesionalRoutes.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 
 const app = express()
@@ -11,7 +10,6 @@ const app = express()
 app.use(cors())
 app.use(express.json())
 app.use('/api', routes)
-app.use('/profesionales', profesionalRoutes)
 app.use(errorHandler)
 
 app.get('/', (_req, res) => {
