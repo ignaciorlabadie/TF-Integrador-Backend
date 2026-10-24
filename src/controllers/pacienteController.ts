@@ -6,6 +6,7 @@ import {
     buscarPacientePorUsuarioId,
     crearPaciente,
     actualizarPaciente,
+    eliminarPaciente as eliminarPacienteService,
 } from '../services/pacienteService.js'
 
 import { AppError } from '../errors/AppError.js'
@@ -124,4 +125,12 @@ export async function modificarMiPerfil(req: Request, res: Response) {
     const pacienteActualizado = await actualizarPaciente(paciente.id, datos)
 
     return res.status(200).json(pacienteActualizado)
+}
+
+export async function eliminarPaciente(req: Request, res: Response) {
+    const id = validarId(req.params.id)
+
+    await eliminarPacienteService(id)
+
+    return res.status(204).send()
 }
