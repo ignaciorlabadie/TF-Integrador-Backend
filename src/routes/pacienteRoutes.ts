@@ -7,6 +7,7 @@ import {
     registrarPaciente,
     modificarPaciente,
     modificarMiPerfil,
+    eliminarPaciente,
 } from '../controllers/pacienteController.js'
 
 import { verificarToken } from '../middlewares/authMiddleware.js'
@@ -25,5 +26,7 @@ router.put('/me', verificarToken, modificarMiPerfil)
 router.get('/:id', verificarToken, verificarRol('ADMIN'), obtenerPacientePorId)
 
 router.put('/:id', verificarToken, verificarRol('ADMIN'), modificarPaciente)
+
+router.delete('/:id', verificarToken, verificarRol('ADMIN'), eliminarPaciente)
 
 export default router

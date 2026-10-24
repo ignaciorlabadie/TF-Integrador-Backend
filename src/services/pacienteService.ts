@@ -1,6 +1,6 @@
 import { UniqueConstraintError } from 'sequelize'
 
-import { Paciente, Usuario } from '../models/index.js'
+import { Estudio, Paciente, Turno, Usuario } from '../models/index.js'
 import sequelize from '../config/database.js'
 import { crearCuenta } from './usuarioService.js'
 import type { CrearPaciente } from '../types/CrearPaciente.js'
@@ -158,5 +158,32 @@ export async function actualizarPaciente(
                 ...atributosUsuario,
             },
         ],
+    })
+}
+
+export async function eliminarPaciente(id: number) {
+    const paciente = await Paciente.findByPk(id)
+
+    if (!paciente) {
+        throw new AppError(404, 'Paciente no encontrado')
+    }
+
+    const [cantidadTurnos, cantidadEstudios] = await Promise.all([
+        Turno.count({ where: { pacienteId: id } }),
+        Estudio.count({ where: { pacienteId: id } }),
+    ])
+
+    if (cantidadTurnos > 0 || cantidadEstudios > 0) {
+        throw new AppError(
+            409,
+            'No se puede eliminar el paciente porque tiene turnos o estudios asociados',
+        )
+    }
+
+    const usuarioId = paciente.usuarioId
+
+    await sequelize.transaction(async (transaction) => {
+        await paciente.destroy({ transaction })
+        await Usuario.destroy({ where: { id: usuarioId }, transaction })
     })
 }
