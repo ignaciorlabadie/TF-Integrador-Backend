@@ -20,16 +20,7 @@ vi.mock('bcryptjs', () => ({
 import Usuario from '../../src/models/Usuario.js'
 import bcrypt from 'bcryptjs'
 
-import {
-    listarUsuarios,
-    buscarUsuarioPorId,
-    buscarUsuarioPorEmail,
-    crearCuenta,
-    crearUsuario,
-    actualizarUsuario,
-    desactivarUsuario,
-    reactivarUsuario,
-} from '../../src/services/usuarioService.js'
+import { usuarioService } from '../../src/services/usuarioService.js'
 
 beforeEach(() => {
     vi.clearAllMocks()
@@ -39,7 +30,7 @@ describe('usuarioService', () => {
     it('debe listar usuarios', async () => {
         vi.mocked(Usuario.findAll).mockResolvedValue([])
 
-        const resultado = await listarUsuarios()
+        const resultado = await usuarioService.listar()
 
         expect(resultado).toEqual([])
         expect(Usuario.findAll).toHaveBeenCalledWith({
@@ -50,7 +41,7 @@ describe('usuarioService', () => {
     it('debe buscar un usuario por ID', async () => {
         vi.mocked(Usuario.findByPk).mockResolvedValue(null)
 
-        const resultado = await buscarUsuarioPorId(1)
+        const resultado = await usuarioService.buscarPorId(1)
 
         expect(resultado).toBeNull()
     })
@@ -58,7 +49,9 @@ describe('usuarioService', () => {
     it('debe buscar un usuario por email normalizado', async () => {
         vi.mocked(Usuario.findOne).mockResolvedValue(null)
 
-        const resultado = await buscarUsuarioPorEmail(' Usuario@Example.com ')
+        const resultado = await usuarioService.buscarPorEmail(
+            ' Usuario@Example.com ',
+        )
 
         expect(resultado).toBeNull()
         expect(Usuario.findOne).toHaveBeenCalledWith({
@@ -78,7 +71,7 @@ describe('usuarioService', () => {
             activo: true,
         } as never)
 
-        const resultado = await crearUsuario({
+        const resultado = await usuarioService.crear({
             email: 'usuario@example.com',
             password: '12345678',
             rol: 'PACIENTE',
@@ -110,7 +103,7 @@ describe('usuarioService', () => {
         } as never)
 
         await expect(
-            crearUsuario({
+            usuarioService.crear({
                 email: 'usuario@example.com',
                 password: '12345678',
                 rol: 'PACIENTE',
@@ -133,7 +126,7 @@ describe('usuarioService', () => {
             activo: true,
         } as never)
 
-        await crearUsuario({
+        await usuarioService.crear({
             email: '  Usuario@Example.com  ',
             password: '12345678',
             rol: 'PACIENTE',
@@ -157,7 +150,7 @@ describe('usuarioService', () => {
 
         const transaction = { id: 'tx-1' } as unknown as Transaction
 
-        const cuenta = await crearCuenta(
+        const cuenta = await usuarioService.crearCuenta(
             {
                 email: '  Usuario@Example.com  ',
                 password: 'Password123',
@@ -194,7 +187,7 @@ describe('usuarioService', () => {
             activo: false,
         } as never)
 
-        await crearCuenta({
+        await usuarioService.crearCuenta({
             email: 'usuario@example.com',
             password: 'Password123',
             rol: 'PROFESIONAL',
@@ -220,7 +213,7 @@ describe('usuarioService', () => {
         )
 
         await expect(
-            crearCuenta({
+            usuarioService.crearCuenta({
                 email: 'usuario@example.com',
                 password: 'Password123',
                 rol: 'PROFESIONAL',
@@ -243,7 +236,7 @@ describe('usuarioService', () => {
             .mockResolvedValueOnce(usuario as never)
             .mockResolvedValueOnce(usuario as never)
 
-        const resultado = await actualizarUsuario(1, {
+        const resultado = await usuarioService.actualizar(1, {
             activo: false,
         })
 
@@ -267,7 +260,7 @@ describe('usuarioService', () => {
 
         vi.mocked(bcrypt.hash).mockResolvedValue('hash-nuevo' as never)
 
-        await actualizarUsuario(1, { password: '12345678' })
+        await usuarioService.actualizar(1, { password: '12345678' })
 
         expect(bcrypt.hash).toHaveBeenCalledWith('12345678', 10)
         expect(usuario.password).toBe('hash-nuevo')
@@ -278,7 +271,7 @@ describe('usuarioService', () => {
         vi.mocked(Usuario.findByPk).mockResolvedValue(null)
 
         await expect(
-            actualizarUsuario(999, { activo: false }),
+            usuarioService.actualizar(999, { activo: false }),
         ).rejects.toMatchObject({
             statusCode: 404,
             message: 'Usuario no encontrado',
@@ -301,7 +294,7 @@ describe('usuarioService', () => {
         } as never)
 
         await expect(
-            actualizarUsuario(1, {
+            usuarioService.actualizar(1, {
                 email: 'otro@example.com',
             }),
         ).rejects.toMatchObject({
@@ -323,7 +316,7 @@ describe('usuarioService', () => {
             .mockResolvedValueOnce(usuario as never)
             .mockResolvedValueOnce(usuario as never)
 
-        const resultado = await desactivarUsuario(1)
+        const resultado = await usuarioService.desactivar(1)
 
         expect(usuario.activo).toBe(false)
         expect(usuario.save).toHaveBeenCalled()
@@ -333,7 +326,7 @@ describe('usuarioService', () => {
     it('debe rechazar la desactivación si el usuario no existe', async () => {
         vi.mocked(Usuario.findByPk).mockResolvedValue(null)
 
-        await expect(desactivarUsuario(999)).rejects.toMatchObject({
+        await expect(usuarioService.desactivar(999)).rejects.toMatchObject({
             statusCode: 404,
             message: 'Usuario no encontrado',
         })
@@ -348,7 +341,7 @@ describe('usuarioService', () => {
 
         vi.mocked(Usuario.findByPk).mockResolvedValue(usuario as never)
 
-        await expect(desactivarUsuario(1)).rejects.toMatchObject({
+        await expect(usuarioService.desactivar(1)).rejects.toMatchObject({
             statusCode: 409,
             message: 'El usuario ya está desactivado',
         })
@@ -367,7 +360,7 @@ describe('usuarioService', () => {
             .mockResolvedValueOnce(usuario as never)
             .mockResolvedValueOnce(usuario as never)
 
-        const resultado = await reactivarUsuario(1)
+        const resultado = await usuarioService.reactivar(1)
 
         expect(usuario.activo).toBe(true)
         expect(usuario.save).toHaveBeenCalled()
@@ -377,7 +370,7 @@ describe('usuarioService', () => {
     it('debe rechazar la reactivación si el usuario no existe', async () => {
         vi.mocked(Usuario.findByPk).mockResolvedValue(null)
 
-        await expect(reactivarUsuario(999)).rejects.toMatchObject({
+        await expect(usuarioService.reactivar(999)).rejects.toMatchObject({
             statusCode: 404,
             message: 'Usuario no encontrado',
         })
@@ -392,7 +385,7 @@ describe('usuarioService', () => {
 
         vi.mocked(Usuario.findByPk).mockResolvedValue(usuario as never)
 
-        await expect(reactivarUsuario(1)).rejects.toMatchObject({
+        await expect(usuarioService.reactivar(1)).rejects.toMatchObject({
             statusCode: 409,
             message: 'El usuario ya está activo',
         })

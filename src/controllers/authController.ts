@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
 
 import { iniciarSesion } from '../services/authService.js'
-import { buscarUsuarioPorId } from '../services/usuarioService.js'
+import { usuarioService } from '../services/usuarioService.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 
@@ -29,7 +29,7 @@ export async function obtenerPerfil(req: Request, res: Response) {
         throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
     }
 
-    const usuario = await buscarUsuarioPorId(id)
+    const usuario = await usuarioService.buscarPorId(id)
 
     if (!usuario) {
         throw new AppError(404, 'Usuario no encontrado')

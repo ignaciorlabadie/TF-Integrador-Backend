@@ -24,166 +24,172 @@ function opcionesTransaccion(transaction?: Transaction): {
     return { transaction }
 }
 
-export async function listarUsuarios() {
-    return Usuario.findAll({
-        ...atributosUsuario,
-    })
-}
-
-export async function buscarUsuarioPorId(id: number) {
-    return Usuario.findByPk(id, {
-        ...atributosUsuario,
-    })
-}
-
-export async function buscarUsuarioPorEmail(email: string) {
-    const usuarioMail = normalizarEmail(email)
-
-    return Usuario.findOne({
-        where: { email: usuarioMail },
-        ...atributosUsuario,
-    })
-}
-
-/**
- * Primitiva única de alta de cuenta: normaliza el email, verifica que no
- * exista, hashea la contraseña e inserta el usuario. Si se pasa una
- * transacción, la usa para que el alta forme parte de un lote atómico
- * (cuenta + perfil).
- */
-export async function crearCuenta(
-    datos: CrearCuenta,
-    opciones: { transaction?: Transaction } = {},
-) {
-    const email = normalizarEmail(datos.email)
-
-    const usuarioExistente = await Usuario.findOne({
-        where: { email },
-        ...opcionesTransaccion(opciones.transaction),
-    })
-
-    if (usuarioExistente) {
-        throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+export class UsuarioService {
+    async listar() {
+        return Usuario.findAll({
+            ...atributosUsuario,
+        })
     }
 
-    const passwordHasheada = await hashPassword(datos.password)
-
-    try {
-        return await Usuario.create(
-            {
-                email,
-                password: passwordHasheada,
-                rol: datos.rol,
-                ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
-            },
-            opcionesTransaccion(opciones.transaction),
-        )
-    } catch (error) {
-        if (error instanceof UniqueConstraintError) {
-            throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
-        }
-
-        throw error
-    }
-}
-
-export async function crearUsuario(datos: CrearUsuario) {
-    const usuario = await crearCuenta({
-        email: datos.email,
-        password: datos.password,
-        rol: datos.rol,
-        ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
-    })
-
-    return {
-        id: usuario.id,
-        email: usuario.email,
-        rol: usuario.rol,
-        activo: usuario.activo,
-    }
-}
-
-export async function actualizarUsuario(id: number, datos: ActualizarUsuario) {
-    const usuario = await Usuario.findByPk(id)
-
-    if (!usuario) {
-        throw new AppError(404, 'Usuario no encontrado')
+    async buscarPorId(id: number) {
+        return Usuario.findByPk(id, {
+            ...atributosUsuario,
+        })
     }
 
-    if (datos.email !== undefined) {
+    async buscarPorEmail(email: string) {
+        const usuarioMail = normalizarEmail(email)
+
+        return Usuario.findOne({
+            where: { email: usuarioMail },
+            ...atributosUsuario,
+        })
+    }
+
+    /**
+     * Primitiva única de alta de cuenta: normaliza el email, verifica que no
+     * exista, hashea la contraseña e inserta el usuario. Si se pasa una
+     * transacción, la usa para que el alta forme parte de un lote atómico
+     * (cuenta + perfil).
+     */
+    async crearCuenta(
+        datos: CrearCuenta,
+        opciones: { transaction?: Transaction } = {},
+    ) {
         const email = normalizarEmail(datos.email)
 
         const usuarioExistente = await Usuario.findOne({
             where: { email },
+            ...opcionesTransaccion(opciones.transaction),
         })
 
-        if (usuarioExistente && usuarioExistente.id !== id) {
+        if (usuarioExistente) {
             throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
         }
 
-        usuario.email = email
+        const passwordHasheada = await hashPassword(datos.password)
+
+        try {
+            return await Usuario.create(
+                {
+                    email,
+                    password: passwordHasheada,
+                    rol: datos.rol,
+                    ...(datos.activo !== undefined
+                        ? { activo: datos.activo }
+                        : {}),
+                },
+                opcionesTransaccion(opciones.transaction),
+            )
+        } catch (error) {
+            if (error instanceof UniqueConstraintError) {
+                throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+            }
+
+            throw error
+        }
     }
 
-    if (datos.activo !== undefined) {
-        usuario.activo = datos.activo
+    async crear(datos: CrearUsuario) {
+        const usuario = await this.crearCuenta({
+            email: datos.email,
+            password: datos.password,
+            rol: datos.rol,
+            ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
+        })
+
+        return {
+            id: usuario.id,
+            email: usuario.email,
+            rol: usuario.rol,
+            activo: usuario.activo,
+        }
     }
 
-    if (datos.password !== undefined) {
-        usuario.password = await hashPassword(datos.password)
+    async actualizar(id: number, datos: ActualizarUsuario) {
+        const usuario = await Usuario.findByPk(id)
+
+        if (!usuario) {
+            throw new AppError(404, 'Usuario no encontrado')
+        }
+
+        if (datos.email !== undefined) {
+            const email = normalizarEmail(datos.email)
+
+            const usuarioExistente = await Usuario.findOne({
+                where: { email },
+            })
+
+            if (usuarioExistente && usuarioExistente.id !== id) {
+                throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+            }
+
+            usuario.email = email
+        }
+
+        if (datos.activo !== undefined) {
+            usuario.activo = datos.activo
+        }
+
+        if (datos.password !== undefined) {
+            usuario.password = await hashPassword(datos.password)
+        }
+
+        try {
+            await usuario.save()
+        } catch (error) {
+            if (error instanceof UniqueConstraintError) {
+                throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+            }
+
+            throw error
+        }
+
+        return Usuario.findByPk(id, {
+            ...atributosUsuario,
+        })
     }
 
-    try {
+    async desactivar(id: number) {
+        // El usuario no se elimina, cambia el campo 'activo' a false.
+        const usuario = await Usuario.findByPk(id)
+
+        if (!usuario) {
+            throw new AppError(404, 'Usuario no encontrado')
+        }
+
+        if (!usuario.activo) {
+            throw new AppError(409, 'El usuario ya está desactivado')
+        }
+
+        usuario.activo = false
+
         await usuario.save()
-    } catch (error) {
-        if (error instanceof UniqueConstraintError) {
-            throw new AppError(409, MENSAJES.EMAIL_YA_REGISTRADO)
+
+        return Usuario.findByPk(id, {
+            ...atributosUsuario,
+        })
+    }
+
+    async reactivar(id: number) {
+        const usuario = await Usuario.findByPk(id)
+
+        if (!usuario) {
+            throw new AppError(404, 'Usuario no encontrado')
         }
 
-        throw error
-    }
+        if (usuario.activo) {
+            throw new AppError(409, 'El usuario ya está activo')
+        }
 
-    return Usuario.findByPk(id, {
-        ...atributosUsuario,
-    })
+        usuario.activo = true
+
+        await usuario.save()
+
+        return Usuario.findByPk(id, {
+            ...atributosUsuario,
+        })
+    }
 }
 
-export async function desactivarUsuario(id: number) {
-    // El usuario no se elimina, cambia el campo 'activo' a false.
-    const usuario = await Usuario.findByPk(id)
-
-    if (!usuario) {
-        throw new AppError(404, 'Usuario no encontrado')
-    }
-
-    if (!usuario.activo) {
-        throw new AppError(409, 'El usuario ya está desactivado')
-    }
-
-    usuario.activo = false
-
-    await usuario.save()
-
-    return Usuario.findByPk(id, {
-        ...atributosUsuario,
-    })
-}
-
-export async function reactivarUsuario(id: number) {
-    const usuario = await Usuario.findByPk(id)
-
-    if (!usuario) {
-        throw new AppError(404, 'Usuario no encontrado')
-    }
-
-    if (usuario.activo) {
-        throw new AppError(409, 'El usuario ya está activo')
-    }
-
-    usuario.activo = true
-
-    await usuario.save()
-
-    return Usuario.findByPk(id, {
-        ...atributosUsuario,
-    })
-}
+export const usuarioService = new UsuarioService()

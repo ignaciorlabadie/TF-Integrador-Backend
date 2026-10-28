@@ -1,15 +1,6 @@
 import { Router } from 'express'
 
-import {
-    obtenerUsuarios,
-    obtenerUsuarioPorId,
-    obtenerUsuarioPorEmail,
-    crearUsuarioController,
-    modificarUsuario,
-    desactivarUsuarioController,
-    reactivarUsuarioController,
-} from '../controllers/usuarioController.js'
-
+import { usuarioController } from '../controllers/usuarioController.js'
 import { verificarToken } from '../middlewares/authMiddleware.js'
 import {
     verificarRol,
@@ -18,33 +9,43 @@ import {
 
 const router = Router()
 
-router.post('/', verificarToken, verificarRol('ADMIN'), crearUsuarioController)
+router.post('/', verificarToken, verificarRol('ADMIN'), usuarioController.crear)
 
-router.get('/', verificarToken, verificarRol('ADMIN'), obtenerUsuarios)
+router.get('/', verificarToken, verificarRol('ADMIN'), usuarioController.listar)
 
 router.get(
     '/email/:email',
     verificarToken,
     verificarRol('ADMIN'),
-    obtenerUsuarioPorEmail,
+    usuarioController.buscarPorEmail,
 )
 
-router.get('/:id', verificarToken, verificarAdminOPropio, obtenerUsuarioPorId)
+router.get(
+    '/:id',
+    verificarToken,
+    verificarAdminOPropio,
+    usuarioController.buscarPorId,
+)
 
-router.put('/:id', verificarToken, verificarAdminOPropio, modificarUsuario)
+router.put(
+    '/:id',
+    verificarToken,
+    verificarAdminOPropio,
+    usuarioController.actualizar,
+)
 
 router.patch(
     '/:id/desactivar',
     verificarToken,
     verificarRol('ADMIN'),
-    desactivarUsuarioController,
+    usuarioController.desactivar,
 )
 
 router.patch(
     '/:id/reactivar',
     verificarToken,
     verificarRol('ADMIN'),
-    reactivarUsuarioController,
+    usuarioController.reactivar,
 )
 
 export default router
