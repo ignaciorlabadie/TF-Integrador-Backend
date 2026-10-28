@@ -2,7 +2,6 @@ import { UniqueConstraintError } from 'sequelize'
 import type { Transaction } from 'sequelize'
 
 import Usuario from '../models/Usuario.js'
-import type { CrearCuenta } from '../types/CrearCuenta.js'
 import type { CrearUsuario } from '../types/CrearUsuario.js'
 import type { ActualizarUsuario } from '../types/ActualizarUsuario.js'
 import { AppError } from '../errors/AppError.js'

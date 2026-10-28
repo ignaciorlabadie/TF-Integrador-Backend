@@ -7,11 +7,13 @@ import profesionalRoutes from './profesionalRoutes.js'
 import rolRoutes from './rolRoutes.js'
 import estudioRoutes from './estudioRoutes.js'
 import autorizacionEstudioRoutes from './autorizacionEstudioRoutes.js'
+import espacioRoutes from './espacioRoutes.js'
 
 const router = Router()
 
 router.use('/auth', authRoutes)
 router.use('/usuarios', usuarioRoutes)
+router.use('/espacios', espacioRoutes)
 router.use('/pacientes', pacienteRoutes)
 router.use('/profesionales', profesionalRoutes)
 router.use('/roles', rolRoutes)
