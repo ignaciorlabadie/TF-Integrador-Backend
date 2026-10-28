@@ -6,11 +6,13 @@ vi.mock('../../src/services/authService.js', () => ({
 }))
 
 vi.mock('../../src/services/usuarioService.js', () => ({
-    buscarUsuarioPorId: vi.fn(),
+    usuarioService: {
+        buscarPorId: vi.fn(),
+    },
 }))
 
 import { iniciarSesion } from '../../src/services/authService.js'
-import { buscarUsuarioPorId } from '../../src/services/usuarioService.js'
+import { usuarioService } from '../../src/services/usuarioService.js'
 import { login, obtenerPerfil } from '../../src/controllers/authController.js'
 
 function crearMocks(
@@ -166,13 +168,15 @@ describe('authController', () => {
             activo: true,
         }
 
-        vi.mocked(buscarUsuarioPorId).mockResolvedValue(usuario as never)
+        vi.mocked(usuarioService.buscarPorId).mockResolvedValue(
+            usuario as never,
+        )
 
         const { req, res } = crearMocks({}, usuario)
 
         await obtenerPerfil(req, res)
 
-        expect(buscarUsuarioPorId).toHaveBeenCalledWith(1)
+        expect(usuarioService.buscarPorId).toHaveBeenCalledWith(1)
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith(usuario)
     })
@@ -186,7 +190,7 @@ describe('authController', () => {
     })
 
     it('debe devolver 404 si el perfil no existe', async () => {
-        vi.mocked(buscarUsuarioPorId).mockResolvedValue(null)
+        vi.mocked(usuarioService.buscarPorId).mockResolvedValue(null)
 
         const { req, res } = crearMocks(
             {},

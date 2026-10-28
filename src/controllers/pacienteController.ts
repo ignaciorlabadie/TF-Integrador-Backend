@@ -1,14 +1,6 @@
-import type { Request, Response } from 'express'
+import type { NextFunction, Request, Response } from 'express'
 
-import {
-    listarPacientes,
-    buscarPacientePorId,
-    buscarPacientePorUsuarioId,
-    crearPaciente,
-    actualizarPaciente,
-    eliminarPaciente as eliminarPacienteService,
-} from '../services/pacienteService.js'
-
+import { pacienteService } from '../services/pacienteService.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import {
@@ -51,86 +43,121 @@ function validarDatosActualizacion(body: Request['body']) {
     return { nombre, apellido, dni, telefono, fechaNacimiento, direccion }
 }
 
-export async function obtenerPacientes(_req: Request, res: Response) {
-    const pacientes = await listarPacientes()
+export class PacienteController {
+    async listar(_req: Request, res: Response, next: NextFunction) {
+        try {
+            const pacientes = await pacienteService.listar()
 
-    return res.status(200).json(pacientes)
-}
-
-export async function obtenerPacientePorId(req: Request, res: Response) {
-    const id = validarId(req.params.id)
-
-    const paciente = await buscarPacientePorId(id)
-
-    if (!paciente) {
-        throw new AppError(404, 'Paciente no encontrado')
+            return res.status(200).json(pacientes)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    return res.status(200).json(paciente)
-}
+    async buscarPorId(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
 
-export async function obtenerMiPerfil(req: Request, res: Response) {
-    const usuarioId = req.usuario?.id
+            const paciente = await pacienteService.buscarPorId(id)
 
-    if (usuarioId === undefined) {
-        throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
+            if (!paciente) {
+                throw new AppError(404, 'Paciente no encontrado')
+            }
+
+            return res.status(200).json(paciente)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    const paciente = await buscarPacientePorUsuarioId(usuarioId)
+    async obtenerMiPerfil(req: Request, res: Response, next: NextFunction) {
+        try {
+            const usuarioId = req.usuario?.id
 
-    if (!paciente) {
-        throw new AppError(404, 'Paciente no encontrado')
+            if (usuarioId === undefined) {
+                throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
+            }
+
+            const paciente = await pacienteService.buscarPorUsuarioId(usuarioId)
+
+            if (!paciente) {
+                throw new AppError(404, 'Paciente no encontrado')
+            }
+
+            return res.status(200).json(paciente)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    return res.status(200).json(paciente)
-}
+    async crear(req: Request, res: Response, next: NextFunction) {
+        try {
+            const validacion = validarCrearPaciente(req.body)
 
-export async function registrarPaciente(req: Request, res: Response) {
-    const validacion = validarCrearPaciente(req.body)
+            if (!validacion.ok) {
+                throw new AppError(400, validacion.mensaje)
+            }
 
-    if (!validacion.ok) {
-        throw new AppError(400, validacion.mensaje)
+            const paciente = await pacienteService.crear(validacion.datos)
+
+            return res.status(201).json(paciente)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    const paciente = await crearPaciente(validacion.datos)
+    async actualizar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
 
-    return res.status(201).json(paciente)
-}
+            const datos = validarDatosActualizacion(req.body)
 
-export async function modificarPaciente(req: Request, res: Response) {
-    const id = validarId(req.params.id)
+            const paciente = await pacienteService.actualizar(id, datos)
 
-    const datos = validarDatosActualizacion(req.body)
-
-    const paciente = await actualizarPaciente(id, datos)
-
-    return res.status(200).json(paciente)
-}
-
-export async function modificarMiPerfil(req: Request, res: Response) {
-    const usuarioId = req.usuario?.id
-
-    if (usuarioId === undefined) {
-        throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
+            return res.status(200).json(paciente)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    const paciente = await buscarPacientePorUsuarioId(usuarioId)
+    async actualizarMiPerfil(req: Request, res: Response, next: NextFunction) {
+        try {
+            const usuarioId = req.usuario?.id
 
-    if (!paciente) {
-        throw new AppError(404, 'Paciente no encontrado')
+            if (usuarioId === undefined) {
+                throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
+            }
+
+            const paciente = await pacienteService.buscarPorUsuarioId(usuarioId)
+
+            if (!paciente) {
+                throw new AppError(404, 'Paciente no encontrado')
+            }
+
+            const datos = validarDatosActualizacion(req.body)
+
+            const pacienteActualizado = await pacienteService.actualizar(
+                paciente.id,
+                datos,
+            )
+
+            return res.status(200).json(pacienteActualizado)
+        } catch (error) {
+            return next(error)
+        }
     }
 
-    const datos = validarDatosActualizacion(req.body)
+    async eliminar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
 
-    const pacienteActualizado = await actualizarPaciente(paciente.id, datos)
+            await pacienteService.eliminar(id)
 
-    return res.status(200).json(pacienteActualizado)
+            return res.status(204).send()
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
-export async function eliminarPaciente(req: Request, res: Response) {
-    const id = validarId(req.params.id)
-
-    await eliminarPacienteService(id)
-
-    return res.status(204).send()
-}
+export const pacienteController = new PacienteController()

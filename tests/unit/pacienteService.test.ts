@@ -32,7 +32,7 @@ import {
     usuarioModel,
 } from '../helpers/mocksModelos.js'
 
-import { crearPaciente } from '../../src/services/pacienteService.js'
+import { pacienteService } from '../../src/services/pacienteService.js'
 
 const datos = {
     email: 'paciente@example.com',
@@ -54,7 +54,7 @@ beforeEach(() => {
     )
 })
 
-describe('pacienteService.crearPaciente', () => {
+describe('pacienteService.crear', () => {
     it('debe crear el usuario y el perfil dentro de una misma transacción', async () => {
         vi.mocked(pacienteModel.findOne).mockResolvedValue(null)
         vi.mocked(usuarioModel.findOne).mockResolvedValue(null)
@@ -69,7 +69,7 @@ describe('pacienteService.crearPaciente', () => {
             usuarioId: 10,
         } as never)
 
-        const resultado = await crearPaciente(datos)
+        const resultado = await pacienteService.crear(datos)
 
         expect(transactionMock).toHaveBeenCalledTimes(1)
 
@@ -107,7 +107,10 @@ describe('pacienteService.crearPaciente', () => {
             id: 3,
         } as never)
 
-        await crearPaciente({ ...datos, email: '  Paciente@Example.com  ' })
+        await pacienteService.crear({
+            ...datos,
+            email: '  Paciente@Example.com  ',
+        })
 
         expect(usuarioModel.findOne).toHaveBeenCalledWith({
             where: { email: 'paciente@example.com' },
@@ -122,7 +125,7 @@ describe('pacienteService.crearPaciente', () => {
             email: 'paciente@example.com',
         } as never)
 
-        await expect(crearPaciente(datos)).rejects.toMatchObject({
+        await expect(pacienteService.crear(datos)).rejects.toMatchObject({
             statusCode: 409,
             message: 'El email ya está registrado',
         })
@@ -137,7 +140,7 @@ describe('pacienteService.crearPaciente', () => {
             dni: '12345678',
         } as never)
 
-        await expect(crearPaciente(datos)).rejects.toMatchObject({
+        await expect(pacienteService.crear(datos)).rejects.toMatchObject({
             statusCode: 409,
             message: 'El DNI ya está registrado',
         })
