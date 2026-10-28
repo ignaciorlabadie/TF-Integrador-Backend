@@ -45,14 +45,8 @@ export class UsuarioService {
         })
     }
 
-    /**
-     * Primitiva única de alta de cuenta: normaliza el email, verifica que no
-     * exista, hashea la contraseña e inserta el usuario. Si se pasa una
-     * transacción, la usa para que el alta forme parte de un lote atómico
-     * (cuenta + perfil).
-     */
     async crearCuenta(
-        datos: CrearCuenta,
+        datos: CrearUsuario,
         opciones: { transaction?: Transaction } = {},
     ) {
         const email = normalizarEmail(datos.email)
