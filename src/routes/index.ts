@@ -8,6 +8,7 @@ import rolRoutes from './rolRoutes.js'
 import estudioRoutes from './estudioRoutes.js'
 import autorizacionEstudioRoutes from './autorizacionEstudioRoutes.js'
 import espacioRoutes from './espacioRoutes.js'
+import agendaRoutes from './agendaRoutes.js'
 
 const router = Router()
 
@@ -19,5 +20,6 @@ router.use('/profesionales', profesionalRoutes)
 router.use('/roles', rolRoutes)
 router.use('/estudios', estudioRoutes)
 router.use('/autorizacionestudios', autorizacionEstudioRoutes)
+router.use('/agendas', agendaRoutes)
 
 export default router
