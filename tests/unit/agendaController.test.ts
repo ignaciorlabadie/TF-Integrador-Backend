@@ -8,6 +8,7 @@ vi.mock('../../src/services/agendaService.js', () => ({
         buscarPorId: vi.fn(),
         listarPorProfesional: vi.fn(),
         crear: vi.fn(),
+        actualizar: vi.fn(),
     },
 }))
 
@@ -368,6 +369,169 @@ describe('agendaController.crear', () => {
         const { req, res, next } = crearMocks(datosCreacion)
 
         await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.actualizar', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00' },
+            { id: 'abc' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si el body está vacío', async () => {
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si un campo tiene un valor inválido', async () => {
+        const { req, res, next } = crearMocks(
+            { duracionTurno: 0 },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 200 con los datos actualizados', async () => {
+        vi.mocked(agendaService.actualizar).mockResolvedValue({
+            ...agenda,
+            horaFin: '11:00',
+        } as never)
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00' },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(agendaService.actualizar).toHaveBeenCalledWith(10, {
+            horaFin: '11:00',
+        })
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('debe ignorar campos no permitidos como profesionalId', async () => {
+        vi.mocked(agendaService.actualizar).mockResolvedValue(
+            agenda as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00', profesionalId: 999, activo: false },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(agendaService.actualizar).toHaveBeenCalledWith(10, {
+            horaFin: '11:00',
+        })
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('debe reenviar cancelarTurnosAfectados como opciones', async () => {
+        vi.mocked(agendaService.actualizar).mockResolvedValue(
+            agenda as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00', cancelarTurnosAfectados: true },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(agendaService.actualizar).toHaveBeenCalledWith(
+            10,
+            { horaFin: '11:00' },
+            { cancelarTurnosAfectados: true },
+        )
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('debe responder 400 si cancelarTurnosAfectados no es booleano', async () => {
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00', cancelarTurnosAfectados: 'si' },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar 404 si la agenda no existe', async () => {
+        vi.mocked(agendaService.actualizar).mockRejectedValue(
+            new AppError(404, 'Agenda no encontrada'),
+        )
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00' },
+            { id: '999' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar 409 si hay superposición o turnos afectados', async () => {
+        vi.mocked(agendaService.actualizar).mockRejectedValue(
+            new AppError(409, 'Turnos futuros afectados'),
+        )
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00' },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 409 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.actualizar).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks(
+            { horaFin: '11:00' },
+            { id: '10' },
+        )
+
+        await agendaController.actualizar(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
