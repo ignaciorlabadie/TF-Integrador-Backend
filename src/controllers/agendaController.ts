@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import { agendaService } from '../services/agendaService.js'
-import type { DatosActualizarAgenda, DatosAgenda, ListarAgendasFiltros, OpcionesActualizarAgenda } from '../services/agendaService.js'
+import type { DatosActualizarAgenda, DatosAgenda, ListarAgendasFiltros, OpcionesActualizarAgenda, OpcionesDesactivarAgenda } from '../services/agendaService.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
 import { validarId } from '../utils/validarId.js'
@@ -252,6 +252,38 @@ export class AgendaController {
                     : await agendaService.actualizar(id, datos)
 
             return res.status(200).json(agenda)
+        } catch (error) {
+            return next(error)
+        }
+    }
+    async desactivar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+            const { cancelarTurnosFuturos } = req.body ?? {}
+
+            if (
+                cancelarTurnosFuturos !== undefined &&
+                typeof cancelarTurnosFuturos !== 'boolean'
+            ) {
+                throw new AppError(
+                    400,
+                    'cancelarTurnosFuturos debe ser booleano',
+                )
+            }
+
+            const opciones: OpcionesDesactivarAgenda = {}
+
+            if (cancelarTurnosFuturos !== undefined) {
+                opciones.cancelarTurnosFuturos = cancelarTurnosFuturos
+            }
+
+            if (Object.keys(opciones).length > 0) {
+                await agendaService.desactivar(id, opciones)
+            } else {
+                await agendaService.desactivar(id)
+            }
+
+            return res.status(204).send()
         } catch (error) {
             return next(error)
         }
