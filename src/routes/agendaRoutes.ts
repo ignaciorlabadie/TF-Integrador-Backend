@@ -29,11 +29,12 @@ router.put(
     agendaController.actualizar,
 )
 
-router.delete(
-    '/:id',
+router.patch(
+    '/:id/desactivar',
     verificarToken,
     verificarRol('ADMIN'),
     agendaController.desactivar,
 )
 
 export default router
+
