@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { NextFunction, Request, Response } from 'express'
+import { AppError } from '../../src/errors/AppError.js'
 
 vi.mock('../../src/services/agendaService.js', () => ({
     agendaService: {
         listar: vi.fn(),
         buscarPorId: vi.fn(),
+        listarPorProfesional: vi.fn(),
     },
 }))
 
@@ -170,6 +172,66 @@ describe('agendaController.buscarPorId', () => {
         const { req, res, next } = crearMocks({}, { id: '10' })
 
         await agendaController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.listarPorProfesional', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const { req, res, next } = crearMocks(
+            {},
+            { profesionalId: 'abc' },
+        )
+
+        await agendaController.listarPorProfesional(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.listarPorProfesional).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si el profesional no existe', async () => {
+        vi.mocked(agendaService.listarPorProfesional).mockRejectedValue(
+            new AppError(404, 'Profesional no encontrado'),
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            { profesionalId: '999' },
+        )
+
+        await agendaController.listarPorProfesional(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 200 con las agendas del profesional', async () => {
+        vi.mocked(agendaService.listarPorProfesional).mockResolvedValue([
+            agenda,
+        ] as never)
+
+        const { req, res, next } = crearMocks({}, { profesionalId: '1' })
+
+        await agendaController.listarPorProfesional(req, res, next)
+
+        expect(agendaService.listarPorProfesional).toHaveBeenCalledWith(1)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith([agenda])
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.listarPorProfesional).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks({}, { profesionalId: '1' })
+
+        await agendaController.listarPorProfesional(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
