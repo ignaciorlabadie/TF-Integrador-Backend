@@ -35,6 +35,21 @@ export class AgendaController {
             return next(error)
         }
     }
+    async buscarPorId(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            const agenda = await agendaService.buscarPorId(id)
+
+            if (!agenda) {
+                throw new AppError(404, 'Agenda no encontrada')
+            }
+
+            return res.status(200).json(agenda)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const agendaController = new AgendaController()
