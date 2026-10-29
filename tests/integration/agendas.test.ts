@@ -390,16 +390,18 @@ describe('PUT /api/agendas/:id', () => {
     })
 })
 
-describe('DELETE /api/agendas/:id', () => {
+describe('PATCH /api/agendas/:id/desactivar', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).delete('/api/agendas/10')
+        const respuesta = await request(app).patch(
+            '/api/agendas/10/desactivar',
+        )
 
         expect(respuesta.status).toBe(401)
     })
 
     it('debe responder 400 ante un ID inválido', async () => {
         const respuesta = await request(app)
-            .delete('/api/agendas/abc')
+            .patch('/api/agendas/abc/desactivar')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(400)
@@ -409,7 +411,7 @@ describe('DELETE /api/agendas/:id', () => {
         vi.mocked(agendaModel.findByPk).mockResolvedValue(null)
 
         const respuesta = await request(app)
-            .delete('/api/agendas/999')
+            .patch('/api/agendas/999/desactivar')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(404)
@@ -427,7 +429,7 @@ describe('DELETE /api/agendas/:id', () => {
         ] as never)
 
         const respuesta = await request(app)
-            .delete('/api/agendas/10')
+            .patch('/api/agendas/10/desactivar')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(409)
@@ -449,7 +451,7 @@ describe('DELETE /api/agendas/:id', () => {
         vi.mocked(turnoModel.findAll).mockResolvedValue([] as never)
 
         const respuesta = await request(app)
-            .delete('/api/agendas/10')
+            .patch('/api/agendas/10/desactivar')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(204)
@@ -459,7 +461,7 @@ describe('DELETE /api/agendas/:id', () => {
 
     it('debe responder 403 a un PROFESIONAL', async () => {
         const respuesta = await request(app)
-            .delete('/api/agendas/10')
+            .patch('/api/agendas/10/desactivar')
             .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
 
         expect(respuesta.status).toBe(403)
