@@ -9,6 +9,7 @@ vi.mock('../../src/services/agendaService.js', () => ({
         listarPorProfesional: vi.fn(),
         crear: vi.fn(),
         actualizar: vi.fn(),
+        desactivar: vi.fn(),
     },
 }))
 
@@ -532,6 +533,109 @@ describe('agendaController.actualizar', () => {
         )
 
         await agendaController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.desactivar', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const { req, res, next } = crearMocks({}, { id: 'abc' })
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.desactivar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si la agenda no existe', async () => {
+        vi.mocked(agendaService.desactivar).mockRejectedValue(
+            new AppError(404, 'Agenda no encontrada'),
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '999' })
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si no puede desactivarse por reglas de negocio', async () => {
+        vi.mocked(agendaService.desactivar).mockRejectedValue(
+            new AppError(409, 'La agenda tiene turnos futuros'),
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 409 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 204 sin contenido si desactiva correctamente', async () => {
+        vi.mocked(agendaService.desactivar).mockResolvedValue(
+            agenda as never,
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(agendaService.desactivar).toHaveBeenCalledWith(10)
+        expect(res.status).toHaveBeenCalledWith(204)
+        expect(res.send).toHaveBeenCalled()
+        expect(res.json).not.toHaveBeenCalled()
+        expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe reenviar cancelarTurnosFuturos como opciones', async () => {
+        vi.mocked(agendaService.desactivar).mockResolvedValue(
+            agenda as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            { cancelarTurnosFuturos: true },
+            { id: '10' },
+        )
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(agendaService.desactivar).toHaveBeenCalledWith(10, {
+            cancelarTurnosFuturos: true,
+        })
+        expect(res.status).toHaveBeenCalledWith(204)
+    })
+
+    it('debe responder 400 si cancelarTurnosFuturos no es booleano', async () => {
+        const { req, res, next } = crearMocks(
+            { cancelarTurnosFuturos: 'si' },
+            { id: '10' },
+        )
+
+        await agendaController.desactivar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.desactivar).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.desactivar).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.desactivar(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
