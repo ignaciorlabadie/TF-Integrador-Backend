@@ -18,21 +18,21 @@ router.get('/:id', verificarToken, agendaController.buscarPorId)
 router.post(
     '/',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN'),
     agendaController.crear,
 )
 
 router.put(
     '/:id',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN'),
     agendaController.actualizar,
 )
 
 router.delete(
     '/:id',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN'),
     agendaController.desactivar,
 )
 
