@@ -245,6 +245,16 @@ describe('POST /api/agendas', () => {
         expect(agendaModel.create).not.toHaveBeenCalled()
     })
 
+    it('debe responder 403 a un PROFESIONAL', async () => {
+        const respuesta = await request(app)
+            .post('/api/agendas')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+            .send(datosCreacion)
+
+        expect(respuesta.status).toBe(403)
+        expect(agendaModel.create).not.toHaveBeenCalled()
+    })
+
     it('debe responder 400 si faltan campos obligatorios', async () => {
         const respuesta = await request(app)
             .post('/api/agendas')
@@ -369,6 +379,15 @@ describe('PUT /api/agendas/:id', () => {
         expect(guardado).toHaveBeenCalledTimes(1)
         expect(respuesta.body.horaFin).toBe('11:00')
     })
+
+    it('debe responder 403 a un PROFESIONAL', async () => {
+        const respuesta = await request(app)
+            .put('/api/agendas/10')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+            .send({ horaFin: '11:00' })
+
+        expect(respuesta.status).toBe(403)
+    })
 })
 
 describe('DELETE /api/agendas/:id', () => {
@@ -436,5 +455,13 @@ describe('DELETE /api/agendas/:id', () => {
         expect(respuesta.status).toBe(204)
         expect(guardado).toHaveBeenCalledTimes(1)
         expect(respuesta.text).toBe('')
+    })
+
+    it('debe responder 403 a un PROFESIONAL', async () => {
+        const respuesta = await request(app)
+            .delete('/api/agendas/10')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+
+        expect(respuesta.status).toBe(403)
     })
 })
