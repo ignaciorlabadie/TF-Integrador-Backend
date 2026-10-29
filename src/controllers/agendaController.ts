@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 import { agendaService } from '../services/agendaService.js'
-import type { DatosAgenda, ListarAgendasFiltros } from '../services/agendaService.js'
+import type { DatosActualizarAgenda, DatosAgenda, ListarAgendasFiltros, OpcionesActualizarAgenda } from '../services/agendaService.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
 import { validarId } from '../utils/validarId.js'
@@ -85,6 +85,84 @@ function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
     }
 }
 
+function validarDatosActualizarAgenda(body: Request['body']): {
+    datos: DatosActualizarAgenda
+    opciones: OpcionesActualizarAgenda
+} {
+    const cuerpo = body ?? {}
+    const datos: DatosActualizarAgenda = {}
+    const opciones: OpcionesActualizarAgenda = {}
+
+    if (cuerpo.cancelarTurnosAfectados !== undefined) {
+        if (typeof cuerpo.cancelarTurnosAfectados !== 'boolean') {
+            throw new AppError(
+                400,
+                'cancelarTurnosAfectados debe ser booleano',
+            )
+        }
+
+        opciones.cancelarTurnosAfectados =
+            cuerpo.cancelarTurnosAfectados
+    }
+
+    if (cuerpo.diaSemana !== undefined) {
+        if (!esDiaSemanaValido(cuerpo.diaSemana)) {
+            throw new AppError(400, 'El día de la semana no es válido')
+        }
+
+        datos.diaSemana = cuerpo.diaSemana
+    }
+
+    if (cuerpo.horaInicio !== undefined) {
+        if (
+            typeof cuerpo.horaInicio !== 'string' ||
+            !HORA_REGEX.test(cuerpo.horaInicio)
+        ) {
+            throw new AppError(
+                400,
+                'Las horas deben tener un formato válido HH:mm',
+            )
+        }
+
+        datos.horaInicio = cuerpo.horaInicio
+    }
+
+    if (cuerpo.horaFin !== undefined) {
+        if (
+            typeof cuerpo.horaFin !== 'string' ||
+            !HORA_REGEX.test(cuerpo.horaFin)
+        ) {
+            throw new AppError(
+                400,
+                'Las horas deben tener un formato válido HH:mm',
+            )
+        }
+
+        datos.horaFin = cuerpo.horaFin
+    }
+
+    if (cuerpo.duracionTurno !== undefined) {
+        if (
+            typeof cuerpo.duracionTurno !== 'number' ||
+            !Number.isInteger(cuerpo.duracionTurno) ||
+            cuerpo.duracionTurno <= 0
+        ) {
+            throw new AppError(
+                400,
+                'La duración del turno debe ser un número entero positivo',
+            )
+        }
+
+        datos.duracionTurno = cuerpo.duracionTurno
+    }
+
+    if (Object.keys(datos).length === 0) {
+        throw new AppError(400, 'No hay datos para actualizar')
+    }
+
+    return { datos, opciones }
+}
+
 export class AgendaController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
@@ -157,6 +235,23 @@ export class AgendaController {
             const agenda = await agendaService.crear(datos)
 
             return res.status(201).json(agenda)
+        } catch (error) {
+            return next(error)
+        }
+    }
+    async actualizar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+            const { datos, opciones } = validarDatosActualizarAgenda(
+                req.body,
+            )
+
+            const agenda =
+                Object.keys(opciones).length > 0
+                    ? await agendaService.actualizar(id, datos, opciones)
+                    : await agendaService.actualizar(id, datos)
+
+            return res.status(200).json(agenda)
         } catch (error) {
             return next(error)
         }
