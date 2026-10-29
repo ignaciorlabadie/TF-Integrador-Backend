@@ -4,6 +4,7 @@ import type { NextFunction, Request, Response } from 'express'
 vi.mock('../../src/services/agendaService.js', () => ({
     agendaService: {
         listar: vi.fn(),
+        buscarPorId: vi.fn(),
     },
 }))
 
@@ -119,6 +120,56 @@ describe('agendaController.listar', () => {
         const { req, res, next } = crearMocks()
 
         await agendaController.listar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.buscarPorId', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const { req, res, next } = crearMocks({}, { id: 'abc' })
+
+        await agendaController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.buscarPorId).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si la agenda no existe', async () => {
+        vi.mocked(agendaService.buscarPorId).mockResolvedValue(null)
+
+        const { req, res, next } = crearMocks({}, { id: '999' })
+
+        await agendaController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 200 con la agenda', async () => {
+        vi.mocked(agendaService.buscarPorId).mockResolvedValue(agenda as never)
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.buscarPorId(req, res, next)
+
+        expect(agendaService.buscarPorId).toHaveBeenCalledWith(10)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(agenda)
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.buscarPorId).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.buscarPorId(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
