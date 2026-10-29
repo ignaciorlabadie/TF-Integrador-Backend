@@ -50,6 +50,25 @@ export class AgendaController {
             return next(error)
         }
     }
+    async listarPorProfesional(
+        req: Request,
+        res: Response,
+        next: NextFunction,
+    ) {
+        try {
+            const profesionalId = validarId(
+                req.params.profesionalId,
+                'ID del profesional',
+            )
+
+            const agendas =
+                await agendaService.listarPorProfesional(profesionalId)
+
+            return res.status(200).json(agendas)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const agendaController = new AgendaController()
