@@ -7,6 +7,7 @@ vi.mock('../../src/services/agendaService.js', () => ({
         listar: vi.fn(),
         buscarPorId: vi.fn(),
         listarPorProfesional: vi.fn(),
+        crear: vi.fn(),
     },
 }))
 
@@ -51,6 +52,14 @@ const agenda = {
     horaFin: '12:00',
     duracionTurno: 60,
     activo: true,
+}
+
+const datosCreacion = {
+    profesionalId: 1,
+    diaSemana: 'LUNES',
+    horaInicio: '08:00',
+    horaFin: '12:00',
+    duracionTurno: 60,
 }
 
 beforeEach(() => {
@@ -232,6 +241,133 @@ describe('agendaController.listarPorProfesional', () => {
         const { req, res, next } = crearMocks({}, { profesionalId: '1' })
 
         await agendaController.listarPorProfesional(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.crear', () => {
+    it('debe responder 400 si faltan campos obligatorios', async () => {
+        const { req, res, next } = crearMocks({ profesionalId: 1 })
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si profesionalId no es válido', async () => {
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            profesionalId: 'abc',
+        })
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si el día de la semana no es válido', async () => {
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            diaSemana: 'LUNDI',
+        })
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si una hora no tiene formato HH:mm', async () => {
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            horaInicio: '9:00',
+        })
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si la duración no es un entero positivo', async () => {
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            duracionTurno: 0,
+        })
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 201 enviando solo los campos permitidos', async () => {
+        vi.mocked(agendaService.crear).mockResolvedValue(agenda as never)
+
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            activo: false,
+            id: 99,
+        })
+
+        await agendaController.crear(req, res, next)
+
+        expect(agendaService.crear).toHaveBeenCalledWith(datosCreacion)
+        expect(res.status).toHaveBeenCalledWith(201)
+        expect(res.json).toHaveBeenCalledWith(agenda)
+    })
+
+    it('debe delegar 404 cuando el profesional no existe', async () => {
+        vi.mocked(agendaService.crear).mockRejectedValue(
+            new AppError(404, 'Profesional no encontrado'),
+        )
+
+        const { req, res, next } = crearMocks(datosCreacion)
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar 409 cuando hay superposición u horario incompatible', async () => {
+        vi.mocked(agendaService.crear).mockRejectedValue(
+            new AppError(409, 'Agenda superpuesta'),
+        )
+
+        const { req, res, next } = crearMocks(datosCreacion)
+
+        await agendaController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 409 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.crear).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks(datosCreacion)
+
+        await agendaController.crear(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
