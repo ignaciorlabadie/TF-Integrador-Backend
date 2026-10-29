@@ -1,8 +1,89 @@
 import type { NextFunction, Request, Response } from 'express'
 import { agendaService } from '../services/agendaService.js'
-import type { ListarAgendasFiltros } from '../services/agendaService.js'
+import type { DatosAgenda, ListarAgendasFiltros } from '../services/agendaService.js'
+import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
 import { validarId } from '../utils/validarId.js'
+
+const DIAS_SEMANA = [
+    'LUNES',
+    'MARTES',
+    'MIERCOLES',
+    'JUEVES',
+    'VIERNES',
+    'SABADO',
+    'DOMINGO',
+] as const
+
+const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
+
+function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
+    return (
+        typeof valor === 'string' &&
+        (DIAS_SEMANA as readonly string[]).includes(valor)
+    )
+}
+
+function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
+    const datos = body ?? {}
+    const {
+        profesionalId,
+        diaSemana,
+        horaInicio,
+        horaFin,
+        duracionTurno,
+    } = datos
+
+    if (
+        profesionalId === undefined ||
+        diaSemana === undefined ||
+        horaInicio === undefined ||
+        horaFin === undefined ||
+        duracionTurno === undefined
+    ) {
+        throw new AppError(
+            400,
+            'Faltan datos obligatorios: profesionalId, diaSemana, horaInicio, horaFin y duracionTurno',
+        )
+    }
+
+    const idProfesional = validarId(profesionalId, 'profesionalId')
+
+    if (!esDiaSemanaValido(diaSemana)) {
+        throw new AppError(400, 'El día de la semana no es válido')
+    }
+
+    if (
+        typeof horaInicio !== 'string' ||
+        !HORA_REGEX.test(horaInicio) ||
+        typeof horaFin !== 'string' ||
+        !HORA_REGEX.test(horaFin)
+    ) {
+        throw new AppError(
+            400,
+            'Las horas deben tener un formato válido HH:mm',
+        )
+    }
+
+    if (
+        typeof duracionTurno !== 'number' ||
+        !Number.isInteger(duracionTurno) ||
+        duracionTurno <= 0
+    ) {
+        throw new AppError(
+            400,
+            'La duración del turno debe ser un número entero positivo',
+        )
+    }
+
+    return {
+        profesionalId: idProfesional,
+        diaSemana,
+        horaInicio,
+        horaFin,
+        duracionTurno,
+    }
+}
 
 export class AgendaController {
     async listar(req: Request, res: Response, next: NextFunction) {
@@ -65,6 +146,17 @@ export class AgendaController {
                 await agendaService.listarPorProfesional(profesionalId)
 
             return res.status(200).json(agendas)
+        } catch (error) {
+            return next(error)
+        }
+    }
+    async crear(req: Request, res: Response, next: NextFunction) {
+        try {
+            const datos = validarDatosCrearAgenda(req.body)
+
+            const agenda = await agendaService.crear(datos)
+
+            return res.status(201).json(agenda)
         } catch (error) {
             return next(error)
         }
