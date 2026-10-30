@@ -64,7 +64,7 @@ describe('POST /usuarios', () => {
 
     it('debe responder 403 a un paciente', async () => {
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
             .send({
                 email: 'profesional@test.com',
@@ -86,7 +86,7 @@ describe('POST /usuarios', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'profesional@test.com',
@@ -105,7 +105,7 @@ describe('POST /usuarios', () => {
 
     it('debe rechazar el alta de un paciente', async () => {
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'paciente@test.com',
@@ -119,7 +119,7 @@ describe('POST /usuarios', () => {
 
     it('debe rechazar un rol inválido', async () => {
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'usuario@test.com',
@@ -133,7 +133,7 @@ describe('POST /usuarios', () => {
 
     it('debe rechazar un email inválido', async () => {
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'no-es-un-email',
@@ -147,7 +147,7 @@ describe('POST /usuarios', () => {
 
     it('debe rechazar una contraseña corta', async () => {
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'profesional@test.com',
@@ -165,7 +165,7 @@ describe('POST /usuarios', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/usuarios')
+            .post('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
             .send({
                 email: 'profesional@test.com',
@@ -187,7 +187,7 @@ describe('GET /usuarios', () => {
 
     it('debe responder 403 a un paciente', async () => {
         const respuesta = await request(app)
-            .get('/usuarios')
+            .get('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(403)
@@ -197,7 +197,7 @@ describe('GET /usuarios', () => {
         vi.mocked(usuarioModel.findAll).mockResolvedValue([])
 
         const respuesta = await request(app)
-            .get('/usuarios')
+            .get('/api/usuarios')
             .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(200)

@@ -54,7 +54,7 @@ describe('POST /api/auth/login', () => {
             activo: true,
         } as never)
 
-        const respuesta = await request(app).post('/auth/login').send({
+        const respuesta = await request(app).post('/api/auth/login').send({
             email: 'usuario@example.com',
             password: '12345678',
         })
@@ -80,7 +80,7 @@ describe('POST /api/auth/login', () => {
             activo: true,
         } as never)
 
-        const respuesta = await request(app).post('/auth/login').send({
+        const respuesta = await request(app).post('/api/auth/login').send({
             email: 'usuario@example.com',
             password: 'incorrecta',
         })

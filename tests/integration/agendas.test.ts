@@ -2,11 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 
-vi.hoisted(() => {
-    process.env.SUPABASE_URL = 'https://test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-prueba'
-})
-
 vi.mock('../../src/models/index.js', async () => {
     const mocks = await import('../helpers/mocksModelos.js')
 

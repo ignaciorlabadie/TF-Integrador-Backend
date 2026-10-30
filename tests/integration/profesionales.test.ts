@@ -2,14 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
 import jwt from 'jsonwebtoken'
 
-// El módulo de configuración de Supabase lanza un error al importarse si no hay
-// credenciales y NODE_ENV no es 'development'. En tests las proveemos aquí para
-// no depender de un archivo .env local.
-vi.hoisted(() => {
-    process.env.SUPABASE_URL = 'https://test.supabase.co'
-    process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-role-de-prueba'
-})
-
 vi.mock('../../src/models/index.js', async () => {
     const mocks = await import('../helpers/mocksModelos.js')
 
@@ -76,7 +68,7 @@ afterEach(() => {
 
 describe('GET /profesionales', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).get('/profesionales')
+        const respuesta = await request(app).get('/api/profesionales')
 
         expect(respuesta.status).toBe(401)
         expect(profesionalModel.findAll).not.toHaveBeenCalled()
@@ -86,7 +78,7 @@ describe('GET /profesionales', () => {
         vi.mocked(profesionalModel.findAll).mockResolvedValue([perfil] as never)
 
         const respuesta = await request(app)
-            .get('/profesionales')
+            .get('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(200)
@@ -97,7 +89,7 @@ describe('GET /profesionales', () => {
 
 describe('GET /profesionales/mi-perfil', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).get('/profesionales/mi-perfil')
+        const respuesta = await request(app).get('/api/profesionales/mi-perfil')
 
         expect(respuesta.status).toBe(401)
     })
@@ -106,7 +98,7 @@ describe('GET /profesionales/mi-perfil', () => {
         vi.mocked(profesionalModel.findOne).mockResolvedValue(perfil as never)
 
         const respuesta = await request(app)
-            .get('/profesionales/mi-perfil')
+            .get('/api/profesionales/mi-perfil')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
 
         expect(respuesta.status).toBe(200)
@@ -120,7 +112,7 @@ describe('GET /profesionales/mi-perfil', () => {
         vi.mocked(profesionalModel.findOne).mockResolvedValue(null)
 
         const respuesta = await request(app)
-            .get('/profesionales/mi-perfil')
+            .get('/api/profesionales/mi-perfil')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
 
         expect(respuesta.status).toBe(404)
@@ -130,7 +122,7 @@ describe('GET /profesionales/mi-perfil', () => {
 describe('GET /profesionales/:id', () => {
     it('debe responder 400 ante un ID inválido', async () => {
         const respuesta = await request(app)
-            .get('/profesionales/abc')
+            .get('/api/profesionales/abc')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
 
         expect(respuesta.status).toBe(400)
@@ -141,7 +133,7 @@ describe('GET /profesionales/:id', () => {
         vi.mocked(profesionalModel.findByPk).mockResolvedValue(null)
 
         const respuesta = await request(app)
-            .get('/profesionales/999')
+            .get('/api/profesionales/999')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(404)
@@ -151,7 +143,7 @@ describe('GET /profesionales/:id', () => {
         vi.mocked(profesionalModel.findByPk).mockResolvedValue(perfil as never)
 
         const respuesta = await request(app)
-            .get('/profesionales/3')
+            .get('/api/profesionales/3')
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(200)
@@ -162,7 +154,7 @@ describe('GET /profesionales/:id', () => {
 describe('POST /profesionales', () => {
     it('debe responder 401 sin token', async () => {
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .send(datosProfesional)
 
         expect(respuesta.status).toBe(401)
@@ -171,7 +163,7 @@ describe('POST /profesionales', () => {
 
     it('debe responder 403 a usuarios sin rol ADMIN', async () => {
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
             .send(datosProfesional)
 
@@ -181,7 +173,7 @@ describe('POST /profesionales', () => {
 
     it('debe responder 400 si faltan campos obligatorios', async () => {
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send({ nombre: 'Ana' })
 
@@ -193,7 +185,7 @@ describe('POST /profesionales', () => {
         vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
 
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send(datosProfesional)
 
@@ -212,7 +204,7 @@ describe('POST /profesionales', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send(datosProfesional)
 
@@ -240,7 +232,7 @@ describe('POST /profesionales', () => {
         } as never)
 
         const respuesta = await request(app)
-            .post('/profesionales')
+            .post('/api/profesionales')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send(datosProfesional)
 
@@ -253,7 +245,7 @@ describe('POST /profesionales', () => {
 describe('PUT /profesionales/:id', () => {
     it('debe responder 401 sin token', async () => {
         const respuesta = await request(app)
-            .put('/profesionales/3')
+            .put('/api/profesionales/3')
             .send({ nombre: 'Nuevo' })
 
         expect(respuesta.status).toBe(401)
@@ -261,7 +253,7 @@ describe('PUT /profesionales/:id', () => {
 
     it('debe responder 400 ante un ID inválido', async () => {
         const respuesta = await request(app)
-            .put('/profesionales/abc')
+            .put('/api/profesionales/abc')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
             .send({ nombre: 'Nuevo' })
 
@@ -272,7 +264,7 @@ describe('PUT /profesionales/:id', () => {
         vi.mocked(profesionalModel.findByPk).mockResolvedValue(null)
 
         const respuesta = await request(app)
-            .put('/profesionales/999')
+            .put('/api/profesionales/999')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
             .send({ nombre: 'Nuevo' })
 
@@ -286,7 +278,7 @@ describe('PUT /profesionales/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .put('/profesionales/3')
+            .put('/api/profesionales/3')
             .set('Authorization', `Bearer ${tokenPara(999, 'PROFESIONAL')}`)
             .send({ nombre: 'Nuevo' })
 
@@ -304,7 +296,7 @@ describe('PUT /profesionales/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .put('/profesionales/3')
+            .put('/api/profesionales/3')
             .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
             .send({ nombre: 'Nuevo' })
 
@@ -320,7 +312,7 @@ describe('PUT /profesionales/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .put('/profesionales/3')
+            .put('/api/profesionales/3')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send({ matricula: 'MP-99999' })
 
@@ -337,7 +329,7 @@ describe('PUT /profesionales/:id', () => {
         } as never)
 
         const respuesta = await request(app)
-            .put('/profesionales/3')
+            .put('/api/profesionales/3')
             .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
             .send({ nombre: 'Nuevo', usuarioId: 999 })
 
