@@ -10,4 +10,8 @@ export const MENSAJES = {
     ROL_PROFESIONAL_REQUERIDO: 'La cuenta debe tener el rol PROFESIONAL',
     MATRICULA_YA_REGISTRADA: 'La matrícula ya está registrada',
     PERFIL_YA_ASIGNADO: 'La cuenta ya tiene un perfil profesional asignado',
+    RECUPERACION_SOLICITADA:
+        'Si el email está registrado, vas a recibir un enlace de recuperación',
+    TOKEN_RECUPERACION_INVALIDO: 'El enlace es inválido o expiró',
+    PASSWORD_ACTUALIZADA: 'Contraseña actualizada correctamente',
 } as const
