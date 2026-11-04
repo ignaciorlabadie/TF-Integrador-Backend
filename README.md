@@ -177,6 +177,49 @@ Los errores siempre responden `{ "mensaje": "..." }` con los códigos `400`
 (validación), `401` (sin autenticación), `403` (sin permisos), `404` (no
 encontrado) y `409` (email o DNI ya registrados).
 
+## Recuperación de contraseña
+
+El flujo usa un token aleatorio de un solo uso, guardado hasheado en la base de
+datos junto con su fecha de expiración.
+
+| Endpoint | Acceso | Descripción |
+| --- | --- | --- |
+| `POST /api/auth/forgot-password` | público | Solicita el envío del enlace de recuperación |
+| `POST /api/auth/reset-password` | público | Establece la nueva contraseña usando el token |
+
+Payloads:
+
+```jsonc
+// POST /api/auth/forgot-password
+{
+    "email": "usuario@example.com"
+}
+
+// POST /api/auth/reset-password
+{
+    "token": "token-recibido-por-email",
+    "password": "NuevaPassword123"
+}
+```
+
+El enlace enviado apunta a `${FRONTEND_URL}/reset-password?token=...`. Por
+seguridad, `forgot-password` responde siempre `200` con un mensaje genérico,
+exista o no el email, y el token expira según `RESET_TOKEN_TTL_MINUTES`.
+
+Variables de entorno necesarias:
+
+```env
+FRONTEND_URL=http://localhost:5173
+RESET_TOKEN_TTL_MINUTES=30
+BREVO_API_KEY=<tu-api-key-de-brevo>
+EMAIL_FROM=remitente-verificado@example.com
+EMAIL_FROM_NAME=Sistema de Turnos
+```
+
+El envío se hace por la API HTTP de Brevo porque los servicios free de Render
+bloquean los puertos SMTP salientes. El email de `EMAIL_FROM` debe estar
+verificado en Brevo.
+
 ## Estado del proyecto
 
 Proyecto en desarrollo.
