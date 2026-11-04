@@ -34,7 +34,13 @@ describe('usuarioService', () => {
 
         expect(resultado).toEqual([])
         expect(Usuario.findAll).toHaveBeenCalledWith({
-            attributes: { exclude: ['password'] },
+            attributes: {
+                exclude: [
+                    'password',
+                    'resetPasswordTokenHash',
+                    'resetPasswordExpiresAt',
+                ],
+            },
         })
     })
 
@@ -56,7 +62,13 @@ describe('usuarioService', () => {
         expect(resultado).toBeNull()
         expect(Usuario.findOne).toHaveBeenCalledWith({
             where: { email: 'usuario@example.com' },
-            attributes: { exclude: ['password'] },
+            attributes: {
+                exclude: [
+                    'password',
+                    'resetPasswordTokenHash',
+                    'resetPasswordExpiresAt',
+                ],
+            },
         })
     })
 

@@ -8,6 +8,8 @@ class Usuario extends Model {
     declare password: string
     declare rol: Rol
     declare activo: boolean
+    declare resetPasswordTokenHash: string | null
+    declare resetPasswordExpiresAt: Date | null
     declare createdAt: Date
     declare updatedAt: Date
 }
@@ -39,6 +41,14 @@ Usuario.init(
             type: DataTypes.BOOLEAN,
             allowNull: false,
             defaultValue: true,
+        },
+        resetPasswordTokenHash: {
+            type: DataTypes.STRING(64),
+            allowNull: true,
+        },
+        resetPasswordExpiresAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
         },
     },
     {
