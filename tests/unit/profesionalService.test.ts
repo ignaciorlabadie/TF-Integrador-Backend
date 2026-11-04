@@ -43,7 +43,13 @@ describe('profesionalService.listar', () => {
                 {
                     model: usuarioModel,
                     as: 'usuario',
-                    attributes: { exclude: ['password'] },
+                    attributes: {
+                        exclude: [
+                            'password',
+                            'resetPasswordTokenHash',
+                            'resetPasswordExpiresAt',
+                        ],
+                    },
                 },
             ],
             order: [['id', 'ASC']],
@@ -65,7 +71,13 @@ describe('profesionalService.buscarPorId', () => {
                 {
                     model: usuarioModel,
                     as: 'usuario',
-                    attributes: { exclude: ['password'] },
+                    attributes: {
+                        exclude: [
+                            'password',
+                            'resetPasswordTokenHash',
+                            'resetPasswordExpiresAt',
+                        ],
+                    },
                 },
             ],
         })
@@ -95,7 +107,13 @@ describe('profesionalService.buscarPorUsuarioId', () => {
                 {
                     model: usuarioModel,
                     as: 'usuario',
-                    attributes: { exclude: ['password'] },
+                    attributes: {
+                        exclude: [
+                            'password',
+                            'resetPasswordTokenHash',
+                            'resetPasswordExpiresAt',
+                        ],
+                    },
                 },
             ],
         })

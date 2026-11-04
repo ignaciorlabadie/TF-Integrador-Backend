@@ -2,6 +2,7 @@ import { UniqueConstraintError } from 'sequelize'
 import type { Transaction } from 'sequelize'
 
 import Usuario from '../models/Usuario.js'
+import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import type { CrearUsuario } from '../types/CrearUsuario.js'
 import type { ActualizarUsuario } from '../types/ActualizarUsuario.js'
 import { AppError } from '../errors/AppError.js'
@@ -10,7 +11,7 @@ import { hashPassword } from '../utils/passwords.js'
 import { normalizarEmail } from '../utils/validacion.js'
 
 const atributosUsuario = {
-    attributes: { exclude: ['password'] },
+    attributes: ATRIBUTOS_USUARIO_PUBLICOS,
 }
 
 function opcionesTransaccion(transaction?: Transaction): {

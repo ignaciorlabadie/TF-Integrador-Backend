@@ -1,6 +1,7 @@
 import { UniqueConstraintError } from 'sequelize'
 
 import { Estudio, Paciente, Turno, Usuario } from '../models/index.js'
+import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import sequelize from '../config/database.js'
 import { usuarioService } from './usuarioService.js'
 import type { CrearPaciente } from '../types/CrearPaciente.js'
@@ -10,7 +11,7 @@ import { MENSAJES } from '../errors/mensajes.js'
 import { normalizarEmail } from '../utils/validacion.js'
 
 const atributosUsuario = {
-    attributes: { exclude: ['password'] },
+    attributes: ATRIBUTOS_USUARIO_PUBLICOS,
 }
 
 export class PacienteService {

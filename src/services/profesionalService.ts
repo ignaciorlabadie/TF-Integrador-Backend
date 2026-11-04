@@ -1,6 +1,7 @@
 import { UniqueConstraintError } from 'sequelize'
 
 import { Profesional, Usuario } from '../models/index.js'
+import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import type { ActualizarProfesional } from '../types/ActualizarProfesional.js'
 import type { CrearProfesional } from '../types/CrearProfesional.js'
 import { AppError } from '../errors/AppError.js'
@@ -12,7 +13,7 @@ import {
 } from '../utils/validacion.js'
 
 const atributosUsuario = {
-    attributes: { exclude: ['password'] },
+    attributes: ATRIBUTOS_USUARIO_PUBLICOS,
 }
 
 type DatosProfesionales = Partial<CrearProfesional>
