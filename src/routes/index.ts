@@ -12,6 +12,12 @@ import agendaRoutes from './agendaRoutes.js'
 
 const router = Router()
 
+router.get('/', (_req, res) => {
+    return res.status(200).json({
+        mensaje: 'API del sistema de turnos',
+    })
+})
+
 router.use('/auth', authRoutes)
 router.use('/usuarios', usuarioRoutes)
 router.use('/espacios', espacioRoutes)
