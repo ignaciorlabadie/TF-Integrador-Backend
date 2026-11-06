@@ -54,14 +54,25 @@ Antes de comenzar, es necesario tener instalado:
 Clonar el repositorio:
 
 ```bash
-git clone https://github.com/ignaciorlabadie/sistema-de-turnos.git
+git clone https://github.com/ignaciorlabadie/TF-Integrador-Backend.git
 ```
 
 Ingresar al proyecto:
 
 ```bash
-cd sistema-de-turnos
+cd TF-Integrador-Backend
 ```
+
+Crear el archivo de variables de entorno a partir del ejemplo:
+
+```bash
+cp .env.example .env
+```
+
+Completar en `.env` los valores necesarios (`JWT_SECRET`, `BREVO_API_KEY`, etc.).
+
+> Para desarrollo local, `DATABASE_URL` debe quedar vacía o comentada: si tiene
+> un valor, la API la usa en lugar de las variables `DB_*`.
 
 Instalar las dependencias:
 
@@ -71,23 +82,73 @@ npm ci
 
 ## Ejecución
 
-Para levantar el proyecto:
+Levantar la base de datos y la aplicación:
 
 ```bash
 docker compose up --build
 ```
 
-Para ejecutar las migraciones:
+En otra terminal, ejecutar las migraciones:
 
 ```bash
 npm run db:migrate
 ```
 
+Cargar los datos de prueba (opcional):
+
+```bash
+npm run db:seed:all
+```
+
+> Los seeders ejecutan `TRUNCATE ... CASCADE`, por lo que reinician las tablas y
+> solo deben usarse en desarrollo.
+
+También se pueden ejecutar dentro del contenedor:
+
+```bash
+docker compose exec app npm run db:migrate
+docker compose exec app npm run db:seed:all
+```
+
+## Ambientes
+
+| Ambiente            | API                                              | Healthcheck                                         |
+| ------------------- | ------------------------------------------------ | --------------------------------------------------- |
+| Local               | `http://localhost:3000/api`                      | `http://localhost:3000/health`                      |
+| Producción (Render) | `https://tf-integrador-backend.onrender.com/api` | `https://tf-integrador-backend.onrender.com/health` |
+
+En local, la API usa las variables `DB_*` del archivo `.env`. En Render se usa
+`DATABASE_URL` (PostgreSQL en Neon) y las variables se configuran en el panel
+del servicio.
+
+### Variables de entorno en Render
+
+| Variable                    | Descripción                                               |
+| --------------------------- | --------------------------------------------------------- |
+| `DATABASE_URL`              | Cadena de conexión a PostgreSQL (Neon)                    |
+| `JWT_SECRET`                | Clave para firmar los tokens JWT                          |
+| `JWT_EXPIRES_IN`            | Duración del token (por ejemplo, `1d`)                    |
+| `BCRYPT_SALT_ROUNDS`        | Rondas de hash de bcrypt (por ejemplo, `10`)              |
+| `FRONTEND_URL`              | URL del frontend usada en el enlace de recuperación       |
+| `RESET_TOKEN_TTL_MINUTES`   | Minutos de validez del token de recuperación              |
+| `BREVO_API_KEY`             | API key de Brevo para enviar emails                       |
+| `EMAIL_FROM`                | Remitente verificado en Brevo                             |
+| `EMAIL_FROM_NAME`           | Nombre visible del remitente                              |
+| `SUPABASE_URL`              | URL del proyecto de Supabase (estudios)                   |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service role key de Supabase (estudios)                   |
+| `SUPABASE_BUCKET`           | Bucket de almacenamiento (por defecto `estudios-medicos`) |
+| `SUPABASE_SIGNED_URL_TTL`   | Segundos de validez de las URLs firmadas                  |
+| `NODE_ENV`                  | `production` en Render                                    |
+
+`SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` son obligatorias fuera de
+desarrollo: la aplicación no inicia si faltan.
+
 ## Estructura del proyecto
 
 ```text
-sistema-de-turnos/
-├──.husky
+TF-Integrador-Backend/
+├──.husky/
+├──docs/
 ├──src/
 │   ├── config/
 │   ├── controllers/
@@ -110,7 +171,6 @@ sistema-de-turnos/
 │   ├── integration/
 │   └── unit/
 ├──.dockerignore
-├──.env
 ├──.env.example
 ├──.gitignore
 ├──.nvmrc
@@ -122,103 +182,65 @@ sistema-de-turnos/
 ├──package-lock.json
 ├──package.json
 ├──README.md
-└──tsconfig.json
+├──tsconfig.json
+└──vitest.config.ts
 ```
+
+## Documentación
+
+La documentación detallada de la API está en [`docs/`](./docs/README.md):
+
+- [Autenticación](./docs/auth.md): login, perfil y recuperación de contraseña.
+- [Usuarios](./docs/usuarios.md): alta y gestión de cuentas.
+- [Pacientes](./docs/pacientes.md): registro, perfil propio y administración.
+- [Roles](./docs/roles.md): roles disponibles y responsabilidades.
+- [Modelo de datos](./docs/modelo-datos.md): tablas `users` y `pacientes`.
 
 ## Flujo de alta de usuarios
 
 El rol de una cuenta **no lo decide el cliente**: se define por el endpoint que
 se usa. Cada endpoint tiene una única semántica de rol.
 
-| Endpoint | Acceso | Rol | Crea |
-| --- | --- | --- | --- |
-| `POST /pacientes` | público | `PACIENTE` (implícito) | `users` + `pacientes`, en una sola transacción |
-| `POST /usuarios` | `Bearer` + rol `ADMIN` | `PROFESIONAL` o `ADMIN` (explícito en el body) | `users` |
-| `GET /roles` | público | — | — (lista los roles disponibles) |
+| Endpoint              | Acceso                 | Rol                                            | Crea                                           |
+| --------------------- | ---------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `POST /api/pacientes` | público                | `PACIENTE` (implícito)                         | `users` + `pacientes`, en una sola transacción |
+| `POST /api/usuarios`  | `Bearer` + rol `ADMIN` | `PROFESIONAL` o `ADMIN` (explícito en el body) | `users`                                        |
+| `GET /api/roles`      | público                | —                                              | — (lista los roles disponibles)                |
 
-Reglas del flujo:
+Reglas principales:
 
-- El registro público es **únicamente** el de pacientes (`POST /pacientes`),
+- El registro público es **únicamente** el de pacientes (`POST /api/pacientes`),
   que crea el usuario y su perfil juntos. Un paciente siempre tiene perfil.
 - Las cuentas `PROFESIONAL` y `ADMIN` las crea un administrador autenticado
-  en `POST /usuarios`. El body incluye `rol` y, opcionalmente, `activo: false`
+  en `POST /api/usuarios`. El body incluye `rol` y, opcionalmente, `activo: false`
   para pre-crear una cuenta inactiva.
-- Intentar dar de alta un paciente por `POST /usuarios` devuelve `400` con el
-  mensaje indicando que el alta de pacientes se hace en `POST /pacientes`.
+- Intentar dar de alta un paciente por `POST /api/usuarios` devuelve `400` con el
+  mensaje indicando que el alta de pacientes se hace en `POST /api/pacientes`.
 - El primer usuario `ADMIN` se crea con los seeders
   (`admin@tfi.local.com` / `Password123`).
 - La creación de usuario y perfil es atómica: si algo falla, no queda ni la
   cuenta ni el perfil.
 
-Payloads:
-
-```jsonc
-// POST /pacientes
-{
-    "email": "paciente@example.com",
-    "password": "Password123",
-    "nombre": "Ana",
-    "apellido": "Gomez",
-    "dni": "12345678",
-    "telefono": "+5491112345678",
-    "fechaNacimiento": "1990-05-14",
-    "direccion": "Calle Falsa 123"
-}
-
-// POST /usuarios (Bearer de un ADMIN)
-{
-    "email": "profesional@example.com",
-    "password": "Password123",
-    "rol": "PROFESIONAL"
-}
-```
-
-Los errores siempre responden `{ "mensaje": "..." }` con los códigos `400`
-(validación), `401` (sin autenticación), `403` (sin permisos), `404` (no
-encontrado) y `409` (email o DNI ya registrados).
+Los payloads, respuestas y códigos de error están detallados en
+[`docs/usuarios.md`](./docs/usuarios.md) y
+[`docs/pacientes.md`](./docs/pacientes.md).
 
 ## Recuperación de contraseña
 
 El flujo usa un token aleatorio de un solo uso, guardado hasheado en la base de
 datos junto con su fecha de expiración.
 
-| Endpoint | Acceso | Descripción |
-| --- | --- | --- |
-| `POST /api/auth/forgot-password` | público | Solicita el envío del enlace de recuperación |
-| `POST /api/auth/reset-password` | público | Establece la nueva contraseña usando el token |
-
-Payloads:
-
-```jsonc
-// POST /api/auth/forgot-password
-{
-    "email": "usuario@example.com"
-}
-
-// POST /api/auth/reset-password
-{
-    "token": "token-recibido-por-email",
-    "password": "NuevaPassword123"
-}
-```
+| Endpoint                         | Acceso  | Descripción                                   |
+| -------------------------------- | ------- | --------------------------------------------- |
+| `POST /api/auth/forgot-password` | público | Solicita el envío del enlace de recuperación  |
+| `POST /api/auth/reset-password`  | público | Establece la nueva contraseña usando el token |
 
 El enlace enviado apunta a `${FRONTEND_URL}/reset-password?token=...`. Por
 seguridad, `forgot-password` responde siempre `200` con un mensaje genérico,
 exista o no el email, y el token expira según `RESET_TOKEN_TTL_MINUTES`.
 
-Variables de entorno necesarias:
-
-```env
-FRONTEND_URL=http://localhost:5173
-RESET_TOKEN_TTL_MINUTES=30
-BREVO_API_KEY=<tu-api-key-de-brevo>
-EMAIL_FROM=remitente-verificado@example.com
-EMAIL_FROM_NAME=Sistema de Turnos
-```
-
-El envío se hace por la API HTTP de Brevo porque los servicios free de Render
-bloquean los puertos SMTP salientes. El email de `EMAIL_FROM` debe estar
-verificado en Brevo.
+El detalle del flujo, los payloads y las variables de entorno están en
+[`docs/auth.md`](./docs/auth.md).
 
 ## Estado del proyecto
 
