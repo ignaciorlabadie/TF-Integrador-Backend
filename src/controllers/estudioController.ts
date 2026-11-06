@@ -1,5 +1,8 @@
 import type { Request, Response } from 'express'
-import { subirArchivoEstudio, crearUrlFirmada } from '../services/storageService.js'
+import {
+    subirArchivoEstudio,
+    crearUrlFirmada,
+} from '../services/storageService.js'
 import {
     listarEstudios,
     buscarEstudioPorId,
@@ -57,7 +60,10 @@ export async function registrarEstudio(req: Request, res: Response) {
     }
 
     if (typeof fecha !== 'string' || !esFechaValida(fecha)) {
-        throw new AppError(400, 'La fecha del estudio debe tener el formato YYYY-MM-DD')
+        throw new AppError(
+            400,
+            'La fecha del estudio debe tener el formato YYYY-MM-DD',
+        )
     }
 
     if (typeof descripcion !== 'string' || descripcion.trim().length === 0) {
@@ -94,7 +100,11 @@ export async function modificarArchivo(req: Request, res: Response) {
         throw new AppError(404, 'Estudio no encontrado')
     }
 
-    const archivoURL = await subirArchivoEstudio(file.buffer, file.mimetype, estudio.pacienteId)
+    const archivoURL = await subirArchivoEstudio(
+        file.buffer,
+        file.mimetype,
+        estudio.pacienteId,
+    )
 
     const actualizado = await actualizarArchivoEstudio(id, archivoURL)
 

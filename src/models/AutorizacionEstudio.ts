@@ -3,7 +3,6 @@ import { DataTypes, Model } from 'sequelize'
 import sequelize from '../config/database.js'
 import type { EstadoAutorizacionEstudio } from '../types/EstadoAutorizacionEstudio.js'
 
-
 class AutorizacionEstudio extends Model {
     declare id: number
     declare estudioId: number
@@ -22,13 +21,13 @@ class AutorizacionEstudio extends Model {
     }
 
     public revocarProfesional(): void {
-    this.estado = 'VENCIDO'
-}
+        this.estado = 'VENCIDO'
+    }
 
-public estaVigente(): boolean {
-    const hoy = new Date().toISOString().slice(0, 10)
-    return this.estado === 'DISPONIBLE' && this.fechaVencimiento >= hoy
-}
+    public estaVigente(): boolean {
+        const hoy = new Date().toISOString().slice(0, 10)
+        return this.estado === 'DISPONIBLE' && this.fechaVencimiento >= hoy
+    }
 
     public estaVencida(): boolean {
         return !this.estaVigente()

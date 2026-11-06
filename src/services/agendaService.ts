@@ -8,7 +8,7 @@
  * - Proteger los turnos futuros ante cambios de disponibilidad.
  *
  * Convenciones:
- * - diaSemana usa el ENUM del modelo: LUNES..DOMINGO. 
+ * - diaSemana usa el ENUM del modelo: LUNES..DOMINGO.
  * - Las horas se normalizan a HH:mm; PostgreSQL puede devolver HH:mm:ss.
  * - No contiene lógica HTTP ni validación de roles: eso queda en el controller
  *
@@ -52,10 +52,7 @@ export interface DatosAgenda {
 // el dueño de la agenda no se cambia desde actualizar()
 // y la baja se realiza con desactivar().
 export type DatosActualizarAgenda = Partial<
-    Pick<
-        DatosAgenda,
-        'diaSemana' | 'horaInicio' | 'horaFin' | 'duracionTurno'
-    >
+    Pick<DatosAgenda, 'diaSemana' | 'horaInicio' | 'horaFin' | 'duracionTurno'>
 >
 
 /**
@@ -66,8 +63,7 @@ export interface OpcionesActualizarAgenda {
     cancelarTurnosAfectados?: boolean
 }
 
-
- // Permite resolver automáticamente los turnos futuros antes de desactivar una agenda.
+// Permite resolver automáticamente los turnos futuros antes de desactivar una agenda.
 
 export interface OpcionesDesactivarAgenda {
     cancelarTurnosFuturos?: boolean
@@ -104,7 +100,6 @@ const MENSAJES_AGENDA = {
     TURNOS_FUTUROS_PENDIENTES:
         'No se puede desactivar la agenda porque tiene turnos futuros registrados',
 } as const
-
 
 const DIAS_SEMANA: readonly DiaSemana[] = [
     'LUNES',
@@ -281,10 +276,7 @@ function diaSemanaDeFecha(fecha: string): DiaSemana | null {
  * a la grilla que empieza en horaInicio y avanza cada duracionTurno.
  * Así se detectan turnos desalineados o que quedarian superpuestos si cambia la duración.
  */
-function turnoDentroDeHorario(
-    turno: Turno,
-    horario: HorarioValidado,
-): boolean {
+function turnoDentroDeHorario(turno: Turno, horario: HorarioValidado): boolean {
     if (diaSemanaDeFecha(turno.fecha) !== horario.diaSemana) {
         return false
     }
@@ -526,9 +518,7 @@ export class AgendaService {
         // Se combinan los datos recibidos con los actuales para validar
         // el horario completo resultante, aunque la actualización sea parcial.
         const diaSemana =
-            datos.diaSemana !== undefined
-                ? datos.diaSemana
-                : agenda.diaSemana
+            datos.diaSemana !== undefined ? datos.diaSemana : agenda.diaSemana
         const horaInicio =
             datos.horaInicio !== undefined
                 ? datos.horaInicio

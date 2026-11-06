@@ -1,9 +1,8 @@
-import { Router } from 'express';
-import { getOcupacionAdmin } from '../controllers/espacioController.js';
+import { Router } from 'express'
+import { getOcupacionAdmin } from '../controllers/espacioController.js'
 
+const router = Router()
 
-const router = Router();
+router.get('/ocupacion', getOcupacionAdmin)
 
-router.get('/ocupacion', getOcupacionAdmin);
-
-export default router;
+export default router

@@ -45,7 +45,9 @@ beforeEach(() => {
 
 describe('agendaService.listar', () => {
     it('debe listar agendas sin filtros', async () => {
-        vi.mocked(agendaModel.findAll).mockResolvedValue([agendaActiva] as never)
+        vi.mocked(agendaModel.findAll).mockResolvedValue([
+            agendaActiva,
+        ] as never)
 
         const resultado = await agendaService.listar()
 
@@ -161,7 +163,9 @@ describe('agendaService.listarPorProfesional', () => {
         vi.mocked(profesionalModel.findByPk).mockResolvedValue(
             profesionalMock as never,
         )
-        vi.mocked(agendaModel.findAll).mockResolvedValue([agendaActiva] as never)
+        vi.mocked(agendaModel.findAll).mockResolvedValue([
+            agendaActiva,
+        ] as never)
 
         const resultado = await agendaService.listarPorProfesional(1)
 

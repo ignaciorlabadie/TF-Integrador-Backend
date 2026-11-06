@@ -7,7 +7,7 @@ import Turno from './Turno.js'
 import Agenda from './Agenda.js'
 import Estudio from './Estudio.js'
 import AutorizacionEstudio from './AutorizacionEstudio.js'
-import TarifaEspacios from './TarifaEspacio.js' 
+import TarifaEspacios from './TarifaEspacio.js'
 
 // Restricciones de integridad referencial compartidas por todas las relaciones.
 // Deben coincidir con los `references` de cada modelo y con las migraciones.
@@ -176,5 +176,5 @@ export {
     AutorizacionEstudio,
     Espacio,
     AsignacionEspacio,
-    TarifaEspacios 
+    TarifaEspacios,
 }

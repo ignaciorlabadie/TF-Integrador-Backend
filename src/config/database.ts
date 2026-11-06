@@ -1,4 +1,3 @@
-
 import { Sequelize } from 'sequelize'
 import 'dotenv/config'
 
@@ -7,10 +6,7 @@ const databaseUrl = process.env.DATABASE_URL
 const sequelize = databaseUrl
     ? new Sequelize(databaseUrl, {
           dialect: 'postgres',
-          logging:
-              process.env.NODE_ENV === 'development'
-                  ? console.log
-                  : false,
+          logging: process.env.NODE_ENV === 'development' ? console.log : false,
           dialectOptions: {
               ssl: {
                   require: true,
@@ -33,9 +29,7 @@ const sequelize = databaseUrl
               port: Number(process.env.DB_PORT) || 5432,
               dialect: 'postgres',
               logging:
-                  process.env.NODE_ENV === 'development'
-                      ? console.log
-                      : false,
+                  process.env.NODE_ENV === 'development' ? console.log : false,
               pool: {
                   max: 5,
                   min: 0,

@@ -10,7 +10,7 @@ const configuracion = {
 
 export default {
     development: databaseUrl
-    ? {
+        ? {
               ...configuracion,
               use_env_variable: 'DATABASE_URL',
               dialectOptions: {

@@ -101,11 +101,7 @@ describe('agendaController.listar', () => {
     })
 
     it('debe responder 400 si profesionalId no es un entero positivo', async () => {
-        const { req, res, next } = crearMocks(
-            {},
-            {},
-            { profesionalId: 'abc' },
-        )
+        const { req, res, next } = crearMocks({}, {}, { profesionalId: 'abc' })
 
         await agendaController.listar(req, res, next)
 
@@ -191,10 +187,7 @@ describe('agendaController.buscarPorId', () => {
 
 describe('agendaController.listarPorProfesional', () => {
     it('debe responder 400 ante un ID inválido', async () => {
-        const { req, res, next } = crearMocks(
-            {},
-            { profesionalId: 'abc' },
-        )
+        const { req, res, next } = crearMocks({}, { profesionalId: 'abc' })
 
         await agendaController.listarPorProfesional(req, res, next)
 
@@ -209,10 +202,7 @@ describe('agendaController.listarPorProfesional', () => {
             new AppError(404, 'Profesional no encontrado'),
         )
 
-        const { req, res, next } = crearMocks(
-            {},
-            { profesionalId: '999' },
-        )
+        const { req, res, next } = crearMocks({}, { profesionalId: '999' })
 
         await agendaController.listarPorProfesional(req, res, next)
 
@@ -436,9 +426,7 @@ describe('agendaController.actualizar', () => {
     })
 
     it('debe ignorar campos no permitidos como profesionalId', async () => {
-        vi.mocked(agendaService.actualizar).mockResolvedValue(
-            agenda as never,
-        )
+        vi.mocked(agendaService.actualizar).mockResolvedValue(agenda as never)
 
         const { req, res, next } = crearMocks(
             { horaFin: '11:00', profesionalId: 999, activo: false },
@@ -454,9 +442,7 @@ describe('agendaController.actualizar', () => {
     })
 
     it('debe reenviar cancelarTurnosAfectados como opciones', async () => {
-        vi.mocked(agendaService.actualizar).mockResolvedValue(
-            agenda as never,
-        )
+        vi.mocked(agendaService.actualizar).mockResolvedValue(agenda as never)
 
         const { req, res, next } = crearMocks(
             { horaFin: '11:00', cancelarTurnosAfectados: true },
@@ -582,9 +568,7 @@ describe('agendaController.desactivar', () => {
     })
 
     it('debe responder 204 sin contenido si desactiva correctamente', async () => {
-        vi.mocked(agendaService.desactivar).mockResolvedValue(
-            agenda as never,
-        )
+        vi.mocked(agendaService.desactivar).mockResolvedValue(agenda as never)
 
         const { req, res, next } = crearMocks({}, { id: '10' })
 
@@ -598,9 +582,7 @@ describe('agendaController.desactivar', () => {
     })
 
     it('debe reenviar cancelarTurnosFuturos como opciones', async () => {
-        vi.mocked(agendaService.desactivar).mockResolvedValue(
-            agenda as never,
-        )
+        vi.mocked(agendaService.desactivar).mockResolvedValue(agenda as never)
 
         const { req, res, next } = crearMocks(
             { cancelarTurnosFuturos: true },

@@ -1,6 +1,12 @@
 import type { NextFunction, Request, Response } from 'express'
 import { agendaService } from '../services/agendaService.js'
-import type { DatosActualizarAgenda, DatosAgenda, ListarAgendasFiltros, OpcionesActualizarAgenda, OpcionesDesactivarAgenda } from '../services/agendaService.js'
+import type {
+    DatosActualizarAgenda,
+    DatosAgenda,
+    ListarAgendasFiltros,
+    OpcionesActualizarAgenda,
+    OpcionesDesactivarAgenda,
+} from '../services/agendaService.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
 import { validarId } from '../utils/validarId.js'
@@ -26,13 +32,8 @@ function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
 
 function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
     const datos = body ?? {}
-    const {
-        profesionalId,
-        diaSemana,
-        horaInicio,
-        horaFin,
-        duracionTurno,
-    } = datos
+    const { profesionalId, diaSemana, horaInicio, horaFin, duracionTurno } =
+        datos
 
     if (
         profesionalId === undefined ||
@@ -59,10 +60,7 @@ function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
         typeof horaFin !== 'string' ||
         !HORA_REGEX.test(horaFin)
     ) {
-        throw new AppError(
-            400,
-            'Las horas deben tener un formato válido HH:mm',
-        )
+        throw new AppError(400, 'Las horas deben tener un formato válido HH:mm')
     }
 
     if (
@@ -95,14 +93,10 @@ function validarDatosActualizarAgenda(body: Request['body']): {
 
     if (cuerpo.cancelarTurnosAfectados !== undefined) {
         if (typeof cuerpo.cancelarTurnosAfectados !== 'boolean') {
-            throw new AppError(
-                400,
-                'cancelarTurnosAfectados debe ser booleano',
-            )
+            throw new AppError(400, 'cancelarTurnosAfectados debe ser booleano')
         }
 
-        opciones.cancelarTurnosAfectados =
-            cuerpo.cancelarTurnosAfectados
+        opciones.cancelarTurnosAfectados = cuerpo.cancelarTurnosAfectados
     }
 
     if (cuerpo.diaSemana !== undefined) {
@@ -242,9 +236,7 @@ export class AgendaController {
     async actualizar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
-            const { datos, opciones } = validarDatosActualizarAgenda(
-                req.body,
-            )
+            const { datos, opciones } = validarDatosActualizarAgenda(req.body)
 
             const agenda =
                 Object.keys(opciones).length > 0

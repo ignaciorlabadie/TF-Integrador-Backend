@@ -15,12 +15,7 @@ router.get(
 
 router.get('/:id', verificarToken, agendaController.buscarPorId)
 
-router.post(
-    '/',
-    verificarToken,
-    verificarRol('ADMIN'),
-    agendaController.crear,
-)
+router.post('/', verificarToken, verificarRol('ADMIN'), agendaController.crear)
 
 router.put(
     '/:id',
@@ -37,4 +32,3 @@ router.patch(
 )
 
 export default router
-

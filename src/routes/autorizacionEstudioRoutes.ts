@@ -1,10 +1,10 @@
 import { Router } from 'express'
 import {
-  obtenerAutorizaciones,
-  obtenerAutorizacionPorId,
-  crearAutorizacion,
-  revocarAutorizacion,
-  verificarVigencia,
+    obtenerAutorizaciones,
+    obtenerAutorizacionPorId,
+    crearAutorizacion,
+    revocarAutorizacion,
+    verificarVigencia,
 } from '../controllers/autorizacionEstudioController.js'
 
 const router = Router()

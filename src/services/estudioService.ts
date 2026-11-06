@@ -1,5 +1,10 @@
 import { Op } from 'sequelize'
-import { Estudio, Paciente, AutorizacionEstudio, Profesional } from '../models/index.js'
+import {
+    Estudio,
+    Paciente,
+    AutorizacionEstudio,
+    Profesional,
+} from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { eliminarArchivoEstudio } from './storageService.js'
 
@@ -25,7 +30,12 @@ export async function buscarEstudioPorId(id: number) {
                     {
                         model: Profesional,
                         as: 'profesional',
-                        attributes: ['id', 'nombre', 'apellido', 'especialidad'],
+                        attributes: [
+                            'id',
+                            'nombre',
+                            'apellido',
+                            'especialidad',
+                        ],
                     },
                 ],
             },
@@ -58,7 +68,12 @@ export async function obtenerEstudiosPorPaciente(pacienteId: number) {
                     {
                         model: Profesional,
                         as: 'profesional',
-                        attributes: ['id', 'nombre', 'apellido', 'especialidad'],
+                        attributes: [
+                            'id',
+                            'nombre',
+                            'apellido',
+                            'especialidad',
+                        ],
                     },
                 ],
             },

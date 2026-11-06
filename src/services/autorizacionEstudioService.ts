@@ -30,7 +30,10 @@ export async function autorizarProfesionalService(data: {
     })
 
     if (duplicado) {
-        throw new AppError(409, 'Ya existe una autorización vigente para este profesional y estudio')
+        throw new AppError(
+            409,
+            'Ya existe una autorización vigente para este profesional y estudio',
+        )
     }
 
     return await AutorizacionEstudio.create({
