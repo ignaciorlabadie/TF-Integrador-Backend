@@ -13,8 +13,18 @@ import uploadEstudio from '../config/multer.js'
 
 const router = Router()
 
-router.get('/', verificarToken, verificarRol('ADMIN', 'PROFESIONAL'), obtenerEstudios)
-router.get('/:id', verificarToken, verificarRol('ADMIN', 'PROFESIONAL'), obtenerEstudioPorId)
+router.get(
+    '/',
+    verificarToken,
+    verificarRol('ADMIN', 'PROFESIONAL'),
+    obtenerEstudios,
+)
+router.get(
+    '/:id',
+    verificarToken,
+    verificarRol('ADMIN', 'PROFESIONAL'),
+    obtenerEstudioPorId,
+)
 router.get(
     '/paciente/:pacienteId',
     verificarToken,

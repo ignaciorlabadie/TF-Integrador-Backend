@@ -14,21 +14,21 @@ const obtenerOcupacion = async (fechaInicio: string, fechaFin: string) => {
                         {
                             tipo: 'ESPECIFICA',
                             fecha: {
-                                [Op.between]: [fechaInicio, fechaFin]
-                            }
-                        }
-                    ]
+                                [Op.between]: [fechaInicio, fechaFin],
+                            },
+                        },
+                    ],
                 },
                 include: [
                     {
                         model: Profesional,
                         as: 'profesional',
-                        attributes: ['id', 'nombre', 'apellido'] 
-                    }
-                ]
-            }
+                        attributes: ['id', 'nombre', 'apellido'],
+                    },
+                ],
+            },
         ],
-        order: [['id', 'ASC']]
+        order: [['id', 'ASC']],
     })
 
     return espacios

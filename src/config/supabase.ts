@@ -15,7 +15,9 @@ export const supabase = configurado
 
 export const SUPABASE_BUCKET = process.env.SUPABASE_BUCKET ?? 'estudios-medicos'
 
-export const SUPABASE_SIGNED_URL_TTL = Number(process.env.SUPABASE_SIGNED_URL_TTL ?? 3600)
+export const SUPABASE_SIGNED_URL_TTL = Number(
+    process.env.SUPABASE_SIGNED_URL_TTL ?? 3600,
+)
 
 export const SUPABASE_DISPONIBLE = configurado
 

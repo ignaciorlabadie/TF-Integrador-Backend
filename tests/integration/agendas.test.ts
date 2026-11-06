@@ -173,9 +173,7 @@ describe('GET /api/agendas/:id', () => {
 
 describe('GET /api/agendas/profesional/:profesionalId', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).get(
-            '/api/agendas/profesional/1',
-        )
+        const respuesta = await request(app).get('/api/agendas/profesional/1')
 
         expect(respuesta.status).toBe(401)
     })
@@ -387,9 +385,7 @@ describe('PUT /api/agendas/:id', () => {
 
 describe('PATCH /api/agendas/:id/desactivar', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).patch(
-            '/api/agendas/10/desactivar',
-        )
+        const respuesta = await request(app).patch('/api/agendas/10/desactivar')
 
         expect(respuesta.status).toBe(401)
     })
@@ -419,9 +415,7 @@ describe('PATCH /api/agendas/:id/desactivar', () => {
             ...agenda,
             save: guardado,
         } as never)
-        vi.mocked(turnoModel.findAll).mockResolvedValue([
-            turnoFuturo,
-        ] as never)
+        vi.mocked(turnoModel.findAll).mockResolvedValue([turnoFuturo] as never)
 
         const respuesta = await request(app)
             .patch('/api/agendas/10/desactivar')

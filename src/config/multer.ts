@@ -11,7 +11,12 @@ const uploadEstudio = multer({
             return cb(null, true)
         }
 
-        return cb(new AppError(400, 'Tipo de archivo no permitido. Solo se aceptan PDF, JPEG o PNG'))
+        return cb(
+            new AppError(
+                400,
+                'Tipo de archivo no permitido. Solo se aceptan PDF, JPEG o PNG',
+            ),
+        )
     },
 })
 
