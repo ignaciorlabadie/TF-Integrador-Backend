@@ -1,20 +1,34 @@
 import { Op } from 'sequelize'
 
 import sequelize from '../config/database.js'
-import { Agenda, Paciente, Profesional, Turno } from '../models/index.js'
+import {
+    Agenda,
+    Paciente,
+    Profesional,
+    Turno,
+    Usuario,
+} from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import type { ActualizarTurno } from '../types/ActualizarTurno.js'
 import type { CrearTurno } from '../types/CrearTurno.js'
+import {
+    enviarEmailTurnoCancelado,
+    enviarEmailTurnoCreado,
+} from './emailService.js'
 
 type TurnoConRelaciones = Turno & {
-    paciente?: Paciente
+    paciente?: Paciente & { usuario?: Usuario }
     profesional?: Profesional
     agenda?: Agenda
 }
 
 const incluirRelaciones = () => [
-    { model: Paciente, as: 'paciente' },
+    {
+        model: Paciente,
+        as: 'paciente',
+        include: [{ model: Usuario, as: 'usuario' }],
+    },
     { model: Profesional, as: 'profesional' },
     { model: Agenda, as: 'agenda' },
 ]
@@ -62,9 +76,24 @@ export class TurnoService {
             )
         })
 
-        return (await Turno.findByPk(turno.id, {
+        const turnoConRelaciones = (await Turno.findByPk(turno.id, {
             include: incluirRelaciones(),
         })) as TurnoConRelaciones | null
+
+        const paciente = turnoConRelaciones?.paciente
+        const profesional = turnoConRelaciones?.profesional
+
+        if (paciente && profesional && paciente.usuario) {
+            enviarEmailTurnoCreado(
+                paciente.usuario.email,
+                paciente.nombre,
+                turno.fecha,
+                turno.hora,
+                profesional.nombre,
+            ).catch(() => {})
+        }
+
+        return turnoConRelaciones
     }
 
     async listar(filtros: Record<string, string | number> = {}) {
@@ -190,8 +219,25 @@ export class TurnoService {
             throw new AppError(404, 'Turno no encontrado')
         }
 
+        const turnoConRelaciones = (await Turno.findByPk(id, {
+            include: incluirRelaciones(),
+        })) as TurnoConRelaciones | null
+
+        const paciente = turnoConRelaciones?.paciente
+        const profesional = turnoConRelaciones?.profesional
+
         turno.estado = 'CANCELADO'
         await turno.save()
+
+        if (paciente && profesional && paciente.usuario) {
+            enviarEmailTurnoCancelado(
+                paciente.usuario.email,
+                paciente.nombre,
+                turno.fecha,
+                turno.hora,
+                profesional.nombre,
+            ).catch(() => {})
+        }
 
         return Turno.findByPk(id, {
             include: incluirRelaciones(),

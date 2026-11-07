@@ -9,6 +9,7 @@ import estudioRoutes from './estudioRoutes.js'
 import autorizacionEstudioRoutes from './autorizacionEstudioRoutes.js'
 import espacioRoutes from './espacioRoutes.js'
 import agendaRoutes from './agendaRoutes.js'
+import turnoRoutes from './turnoRoutes.js'
 
 const router = Router()
 
@@ -27,5 +28,6 @@ router.use('/roles', rolRoutes)
 router.use('/estudios', estudioRoutes)
 router.use('/autorizacionestudios', autorizacionEstudioRoutes)
 router.use('/agendas', agendaRoutes)
+router.use('/turnos', turnoRoutes)
 
 export default router
