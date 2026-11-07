@@ -14,4 +14,6 @@ export const MENSAJES = {
         'Si el email está registrado, vas a recibir un enlace de recuperación',
     TOKEN_RECUPERACION_INVALIDO: 'El enlace es inválido o expiró',
     PASSWORD_ACTUALIZADA: 'Contraseña actualizada correctamente',
+    TURNO_YA_EXISTE_EN_ESA_FECHA_HORA:
+        'Ya existe un turno para ese profesional en la fecha y hora seleccionada',
 } as const
