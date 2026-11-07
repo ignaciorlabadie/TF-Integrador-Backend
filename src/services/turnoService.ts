@@ -96,14 +96,7 @@ export class TurnoService {
         return turnoConRelaciones
     }
 
-    async listar(
-        filtros: {
-            profesionalId?: string | number
-            pacienteId?: string | number
-            fecha?: string
-            estado?: string
-        } = {},
-    ) {
+    async listar(filtros: Record<string, string | number> = {}) {
         const where: Record<string, unknown> = {}
 
         if (filtros.profesionalId) {

@@ -51,23 +51,22 @@ function validarDatosActualizacion(body: Request['body']) {
 export class TurnoController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
-            const filtros = {
-                profesionalId:
-                    req.query.profesionalId !== undefined
-                        ? Number(req.query.profesionalId)
-                        : undefined,
-                pacienteId:
-                    req.query.pacienteId !== undefined
-                        ? Number(req.query.pacienteId)
-                        : undefined,
-                fecha:
-                    req.query.fecha !== undefined
-                        ? String(req.query.fecha)
-                        : undefined,
-                estado:
-                    req.query.estado !== undefined
-                        ? String(req.query.estado)
-                        : undefined,
+            const filtros: Record<string, string | number> = {}
+
+            if (req.query.profesionalId !== undefined) {
+                filtros.profesionalId = Number(req.query.profesionalId)
+            }
+
+            if (req.query.pacienteId !== undefined) {
+                filtros.pacienteId = Number(req.query.pacienteId)
+            }
+
+            if (req.query.fecha !== undefined) {
+                filtros.fecha = String(req.query.fecha)
+            }
+
+            if (req.query.estado !== undefined) {
+                filtros.estado = String(req.query.estado)
             }
 
             const turnos = await turnoService.listar(filtros)
