@@ -1,16 +1,83 @@
 import { Op } from 'sequelize'
 
-import { Agenda, Paciente, Profesional, Turno } from '../models/index.js'
+import sequelize from '../config/database.js'
+import { Agenda, Paciente, Profesional, Turno, Usuario } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
+import {
+    enviarEmailTurnoCancelado,
+    enviarEmailTurnoCreado,
+} from './emailService.js'
 
 const incluirRelaciones = () => [
-    { model: Paciente, as: 'paciente' },
+    { model: Paciente, as: 'paciente', include: [{ model: Usuario, as: 'usuario' }] },
     { model: Profesional, as: 'profesional' },
     { model: Agenda, as: 'agenda' },
 ]
 
 export class TurnoService {
+    async crear(datos) {
+        const turnoExistente = await Turno.findOne({
+            where: {
+                profesionalId: datos.profesionalId,
+                fecha: datos.fecha,
+                hora: datos.hora,
+                estado: { [Op.not]: 'CANCELADO' },
+            },
+        })
+
+        if (turnoExistente) {
+            throw new AppError(409, MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA)
+        }
+
+        const agenda = await Agenda.findByPk(datos.agendaId)
+
+        if (!agenda) {
+            throw new AppError(404, 'Agenda no encontrada')
+        }
+
+        const disponible = await agenda.estaDisponible(datos.fecha, datos.hora)
+
+        if (!disponible) {
+            throw new AppError(409, MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA)
+        }
+
+        const turno = await sequelize.transaction(async (transaction) => {
+            return await Turno.create(
+                {
+                    pacienteId: datos.pacienteId,
+                    profesionalId: datos.profesionalId,
+                    agendaId: datos.agendaId,
+                    fecha: datos.fecha,
+                    hora: datos.hora,
+                    motivo: datos.motivo,
+                    observaciones: datos.observaciones ?? null,
+                    estado: 'PENDIENTE',
+                },
+                { transaction },
+            )
+        })
+
+        const turnoConRelaciones = await Turno.findByPk(turno.id, {
+            include: incluirRelaciones(),
+        })
+
+        const paciente = turnoConRelaciones?.paciente
+        const profesional = turnoConRelaciones?.profesional
+
+        if (paciente && profesional && paciente.usuario) {
+            enviarEmailTurnoCreado(
+                paciente.usuario.email,
+                paciente.nombre,
+                turno.fecha,
+                turno.hora,
+                profesional.nombre,
+            ).catch(() => {})
+        }
+
+        return turnoConRelaciones
+    }
+
     async listar(filtros = {}) {
         const where = {}
 
@@ -113,8 +180,25 @@ export class TurnoService {
             throw new AppError(404, 'Turno no encontrado')
         }
 
+        const turnoConRelaciones = await Turno.findByPk(id, {
+            include: incluirRelaciones(),
+        })
+
+        const paciente = turnoConRelaciones?.paciente
+        const profesional = turnoConRelaciones?.profesional
+
         turno.estado = 'CANCELADO'
         await turno.save()
+
+        if (paciente && profesional && paciente.usuario) {
+            enviarEmailTurnoCancelado(
+                paciente.usuario.email,
+                paciente.nombre,
+                turno.fecha,
+                turno.hora,
+                profesional.nombre,
+            ).catch(() => {})
+        }
 
         return Turno.findByPk(id, {
             include: incluirRelaciones(),
