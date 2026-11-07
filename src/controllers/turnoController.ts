@@ -28,7 +28,7 @@ function validarDatosCreacion(body: Request['body']) {
         observaciones:
             body.observaciones !== undefined
                 ? String(body.observaciones)
-                : undefined,
+                : null,
     }
 }
 
@@ -52,10 +52,22 @@ export class TurnoController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
             const filtros = {
-                profesionalId: req.query.profesionalId,
-                pacienteId: req.query.pacienteId,
-                fecha: req.query.fecha,
-                estado: req.query.estado,
+                profesionalId:
+                    req.query.profesionalId !== undefined
+                        ? Number(req.query.profesionalId)
+                        : undefined,
+                pacienteId:
+                    req.query.pacienteId !== undefined
+                        ? Number(req.query.pacienteId)
+                        : undefined,
+                fecha:
+                    req.query.fecha !== undefined
+                        ? String(req.query.fecha)
+                        : undefined,
+                estado:
+                    req.query.estado !== undefined
+                        ? String(req.query.estado)
+                        : undefined,
             }
 
             const turnos = await turnoService.listar(filtros)
