@@ -1,7 +1,13 @@
 import { Op } from 'sequelize'
 
 import sequelize from '../config/database.js'
-import { Agenda, Paciente, Profesional, Turno, Usuario } from '../models/index.js'
+import {
+    Agenda,
+    Paciente,
+    Profesional,
+    Turno,
+    Usuario,
+} from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import {
@@ -10,7 +16,11 @@ import {
 } from './emailService.js'
 
 const incluirRelaciones = () => [
-    { model: Paciente, as: 'paciente', include: [{ model: Usuario, as: 'usuario' }] },
+    {
+        model: Paciente,
+        as: 'paciente',
+        include: [{ model: Usuario, as: 'usuario' }],
+    },
     { model: Profesional, as: 'profesional' },
     { model: Agenda, as: 'agenda' },
 ]
@@ -100,7 +110,10 @@ export class TurnoService {
         return Turno.findAll({
             where,
             include: incluirRelaciones(),
-            order: [['fecha', 'ASC'], ['hora', 'ASC']],
+            order: [
+                ['fecha', 'ASC'],
+                ['hora', 'ASC'],
+            ],
         })
     }
 
@@ -123,7 +136,11 @@ export class TurnoService {
             throw new AppError(404, 'Turno no encontrado')
         }
 
-        if ((datos.fecha || datos.hora) && datos.fecha !== undefined && datos.hora !== undefined) {
+        if (
+            (datos.fecha || datos.hora) &&
+            datos.fecha !== undefined &&
+            datos.hora !== undefined
+        ) {
             const turnoExistente = await Turno.findOne({
                 where: {
                     profesionalId: turno.profesionalId,
@@ -135,14 +152,23 @@ export class TurnoService {
             })
 
             if (turnoExistente) {
-                throw new AppError(409, MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA)
+                throw new AppError(
+                    409,
+                    MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA,
+                )
             }
 
             const agenda = await Agenda.findByPk(turno.agendaId)
-            const disponible = await agenda.estaDisponible(datos.fecha, datos.hora)
+            const disponible = await agenda.estaDisponible(
+                datos.fecha,
+                datos.hora,
+            )
 
             if (!disponible) {
-                throw new AppError(409, MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA)
+                throw new AppError(
+                    409,
+                    MENSAJES.TURNO_YA_EXISTE_EN_ESA_FECHA_HORA,
+                )
             }
         }
 

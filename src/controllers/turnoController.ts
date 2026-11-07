@@ -25,7 +25,10 @@ function validarDatosCreacion(body: Request['body']) {
         fecha: String(fecha),
         hora: String(hora),
         motivo: String(motivo),
-        observaciones: body.observaciones !== undefined ? String(body.observaciones) : undefined,
+        observaciones:
+            body.observaciones !== undefined
+                ? String(body.observaciones)
+                : undefined,
     }
 }
 

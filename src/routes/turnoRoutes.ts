@@ -6,12 +6,7 @@ import { verificarRol } from '../middlewares/rolMiddleware.js'
 
 const router = Router()
 
-router.get(
-    '/',
-    verificarToken,
-    verificarRol('ADMIN'),
-    turnoController.listar,
-)
+router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
 
 router.get(
     '/:id',
@@ -20,22 +15,10 @@ router.get(
     turnoController.buscarPorId,
 )
 
-router.post(
-    '/',
-    verificarToken,
-    turnoController.crear,
-)
+router.post('/', verificarToken, turnoController.crear)
 
-router.put(
-    '/:id',
-    verificarToken,
-    turnoController.actualizar,
-)
+router.put('/:id', verificarToken, turnoController.actualizar)
 
-router.delete(
-    '/:id',
-    verificarToken,
-    turnoController.cancelar,
-)
+router.delete('/:id', verificarToken, turnoController.cancelar)
 
 export default router
