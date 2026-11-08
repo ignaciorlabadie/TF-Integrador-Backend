@@ -6,7 +6,11 @@ vi.mock('../../src/models/index.js', async () => {
     return mocks.modelosMock()
 })
 
-import { asignacionEspacioModel, espacioModel, profesionalModel } from '../helpers/mocksModelos.js'
+import {
+    asignacionEspacioModel,
+    espacioModel,
+    profesionalModel,
+} from '../helpers/mocksModelos.js'
 import { asignacionEspacioService } from '../../src/services/asignacionEspacioService.js'
 
 const asignacion = {
@@ -38,6 +42,29 @@ const datosEspecifica = {
     fecha: '2027-10-25',
     horaInicio: '08:00',
     horaFin: '12:00',
+}
+
+const espacioActivo = {
+    id: 10,
+    nombre: 'Sala 1',
+    tipo: 'GIMNASIO',
+    ubicacion: 'ADELANTE',
+    activo: true,
+}
+
+const profesional = {
+    id: 5,
+    nombre: 'Ana',
+    apellido: 'Gomez',
+    matricula: 'MP-12345',
+    especialidad: 'Kinesiología',
+}
+
+const asignacionEspecifica = {
+    ...asignacion,
+    tipo: 'ESPECIFICA',
+    diaSemana: null,
+    fecha: '2027-10-25',
 }
 
 beforeEach(() => {
@@ -264,5 +291,98 @@ describe('asignacionEspacioService.crear - validaciones', () => {
             }),
         ).rejects.toMatchObject({ statusCode: 400 })
         expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+})
+
+describe('asignacionEspacioService.crear - existencia y alta', () => {
+    it('debe responder 404 si el espacio no existe', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si el espacio está inactivo', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue({
+            ...espacioActivo,
+            activo: false,
+        } as never)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si el profesional no existe', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe crear una asignación FIJA y retornarla', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([] as never)
+        vi.mocked(asignacionEspacioModel.create).mockResolvedValue({
+            id: 1,
+        } as never)
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const resultado = await asignacionEspacioService.crear(datosFija)
+
+        expect(asignacionEspacioModel.create).toHaveBeenCalledWith({
+            espacioId: 10,
+            profesionalId: 5,
+            tipo: 'FIJA',
+            diaSemana: 'LUNES',
+            fecha: null,
+            horaInicio: '08:00',
+            horaFin: '12:00',
+        })
+        expect(resultado).toEqual(asignacion)
+    })
+
+    it('debe crear una asignación ESPECIFICA y retornarla', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([] as never)
+        vi.mocked(asignacionEspacioModel.create).mockResolvedValue({
+            id: 2,
+        } as never)
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacionEspecifica as never,
+        )
+
+        const resultado = await asignacionEspacioService.crear(datosEspecifica)
+
+        expect(asignacionEspacioModel.create).toHaveBeenCalledWith({
+            espacioId: 10,
+            profesionalId: 5,
+            tipo: 'ESPECIFICA',
+            diaSemana: null,
+            fecha: '2027-10-25',
+            horaInicio: '08:00',
+            horaFin: '12:00',
+        })
+        expect(resultado).toEqual(asignacionEspecifica)
     })
 })

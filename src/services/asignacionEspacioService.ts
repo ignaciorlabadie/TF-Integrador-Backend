@@ -55,8 +55,12 @@ const MENSAJES_ASIGNACION = {
     DIA_SEMANA_INVALIDO: 'El día de la semana no es válido',
     FIJA_CON_FECHA: 'Una asignación FIJA no puede tener fecha',
     FECHA_INVALIDA: 'La fecha debe tener formato YYYY-MM-DD',
-    ESPECIFICA_CON_DIA: 'Una asignación ESPECIFICA no puede tener día de semana',
+    ESPECIFICA_CON_DIA:
+        'Una asignación ESPECIFICA no puede tener día de semana',
     FECHA_PASADA: 'La fecha de la asignación no puede ser pasada',
+    ESPACIO_NO_ENCONTRADO: 'Espacio no encontrado',
+    ESPACIO_INACTIVO: 'No se puede asignar un espacio inactivo',
+    PROFESIONAL_NO_ENCONTRADO: 'Profesional no encontrado',
 } as const
 
 function validarIdentificador(valor: unknown, nombreCampo: string): number {
@@ -249,11 +253,41 @@ export class AsignacionEspacioService {
     async crear(
         datos: DatosAsignacionEspacio,
     ): Promise<AsignacionEspacio | null> {
-        validarDatosCreacion(datos)
+        const datosValidados = validarDatosCreacion(datos)
 
-        return null
+        const espacio = await Espacio.findByPk(datosValidados.espacioId)
+
+        if (!espacio) {
+            throw new AppError(404, MENSAJES_ASIGNACION.ESPACIO_NO_ENCONTRADO)
+        }
+
+        if (!espacio.activo) {
+            throw new AppError(409, MENSAJES_ASIGNACION.ESPACIO_INACTIVO)
+        }
+
+        const profesional = await Profesional.findByPk(
+            datosValidados.profesionalId,
+        )
+
+        if (!profesional) {
+            throw new AppError(
+                404,
+                MENSAJES_ASIGNACION.PROFESIONAL_NO_ENCONTRADO,
+            )
+        }
+
+        const asignacion = await AsignacionEspacio.create({
+            espacioId: datosValidados.espacioId,
+            profesionalId: datosValidados.profesionalId,
+            tipo: datosValidados.tipo,
+            diaSemana: datosValidados.diaSemana,
+            fecha: datosValidados.fecha,
+            horaInicio: datosValidados.horaInicio,
+            horaFin: datosValidados.horaFin,
+        })
+
+        return this.buscarPorId(asignacion.id)
     }
 }
 
 export const asignacionEspacioService = new AsignacionEspacioService()
-
