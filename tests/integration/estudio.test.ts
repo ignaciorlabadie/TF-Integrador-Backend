@@ -33,28 +33,19 @@ import {
     subirArchivoEstudio,
     crearUrlFirmada,
 } from '../../src/services/storageService.js'
-import {
-    estudioModel,
-    pacienteModel,
-} from '../helpers/mocksModelos.js'
+import { estudioModel, pacienteModel } from '../helpers/mocksModelos.js'
 import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
 
-function tokenPara(
-    id: number,
-    rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN',
-) {
+function tokenPara(id: number, rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN') {
     return jwt.sign(
         { id, email: `${rol.toLowerCase()}@test.com`, rol },
         JWT_SECRET,
     )
 }
 
-function autenticado(
-    rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN',
-    id = 1,
-) {
+function autenticado(rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN', id = 1) {
     return {
         Authorization: `Bearer ${tokenPara(id, rol)}`,
     }
@@ -305,9 +296,7 @@ describe('POST /api/estudios', () => {
 
 describe('PUT /api/estudios/:id/archivo', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).put(
-            '/api/estudios/1/archivo',
-        )
+        const respuesta = await request(app).put('/api/estudios/1/archivo')
 
         expect(respuesta.status).toBe(401)
     })

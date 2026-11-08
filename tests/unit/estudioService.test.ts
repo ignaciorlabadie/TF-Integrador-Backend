@@ -111,7 +111,9 @@ describe('estudioService', () => {
             vi.useFakeTimers()
             vi.setSystemTime(new Date('2026-11-07T15:00:00.000Z'))
 
-            vi.mocked(pacienteModel.findByPk).mockResolvedValue({ id: 5 } as never)
+            vi.mocked(pacienteModel.findByPk).mockResolvedValue({
+                id: 5,
+            } as never)
             const estudios = [{ id: 1, pacienteId: 5 }]
             vi.mocked(estudioModel.findAll).mockResolvedValue(estudios as never)
 
@@ -169,7 +171,9 @@ describe('estudioService', () => {
         })
 
         it('debe crear el estudio cuando el paciente existe', async () => {
-            vi.mocked(pacienteModel.findByPk).mockResolvedValue({ id: 5 } as never)
+            vi.mocked(pacienteModel.findByPk).mockResolvedValue({
+                id: 5,
+            } as never)
             const creado = { id: 10, ...data }
             vi.mocked(estudioModel.create).mockResolvedValue(creado as never)
 
@@ -181,7 +185,9 @@ describe('estudioService', () => {
         })
 
         it('debe eliminar el archivo subido si falla la creación del estudio', async () => {
-            vi.mocked(pacienteModel.findByPk).mockResolvedValue({ id: 5 } as never)
+            vi.mocked(pacienteModel.findByPk).mockResolvedValue({
+                id: 5,
+            } as never)
             const errorDb = new Error('fallo al insertar')
             vi.mocked(estudioModel.create).mockRejectedValue(errorDb)
             vi.mocked(eliminarArchivoEstudio).mockResolvedValue(undefined)
@@ -196,7 +202,9 @@ describe('estudioService', () => {
         })
 
         it('debe re-lanzar el error aunque falle la limpieza del archivo', async () => {
-            vi.mocked(pacienteModel.findByPk).mockResolvedValue({ id: 5 } as never)
+            vi.mocked(pacienteModel.findByPk).mockResolvedValue({
+                id: 5,
+            } as never)
             const errorDb = new Error('fallo al insertar')
             vi.mocked(estudioModel.create).mockRejectedValue(errorDb)
             vi.mocked(eliminarArchivoEstudio).mockRejectedValue(
@@ -223,10 +231,18 @@ describe('estudioService', () => {
 
         it('debe actualizar el archivoURL del estudio', async () => {
             const actualizado = { id: 9, archivoURL: 'estudios/5/nuevo.pdf' }
-            const instancia = { id: 9, update: vi.fn().mockResolvedValue(actualizado) }
-            vi.mocked(estudioModel.findByPk).mockResolvedValue(instancia as never)
+            const instancia = {
+                id: 9,
+                update: vi.fn().mockResolvedValue(actualizado),
+            }
+            vi.mocked(estudioModel.findByPk).mockResolvedValue(
+                instancia as never,
+            )
 
-            const resultado = await adjuntarArchivoEstudio(9, 'estudios/5/nuevo.pdf')
+            const resultado = await adjuntarArchivoEstudio(
+                9,
+                'estudios/5/nuevo.pdf',
+            )
 
             expect(instancia.update).toHaveBeenCalledWith({
                 archivoURL: 'estudios/5/nuevo.pdf',
@@ -256,15 +272,22 @@ describe('estudioService', () => {
                 archivoURL: 'estudios/5/viejo.pdf',
                 update: vi.fn().mockResolvedValue(actualizado),
             }
-            vi.mocked(estudioModel.findByPk).mockResolvedValue(instancia as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue(
+                instancia as never,
+            )
             vi.mocked(eliminarArchivoEstudio).mockResolvedValue(undefined)
 
-            const resultado = await actualizarArchivoEstudio(9, 'estudios/5/nuevo.pdf')
+            const resultado = await actualizarArchivoEstudio(
+                9,
+                'estudios/5/nuevo.pdf',
+            )
 
             expect(instancia.update).toHaveBeenCalledWith({
                 archivoURL: 'estudios/5/nuevo.pdf',
             })
-            expect(eliminarArchivoEstudio).toHaveBeenCalledWith('estudios/5/viejo.pdf')
+            expect(eliminarArchivoEstudio).toHaveBeenCalledWith(
+                'estudios/5/viejo.pdf',
+            )
             expect(resultado).toBe(actualizado)
         })
 
@@ -275,7 +298,9 @@ describe('estudioService', () => {
                 archivoURL: null,
                 update: vi.fn().mockResolvedValue(actualizado),
             }
-            vi.mocked(estudioModel.findByPk).mockResolvedValue(instancia as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue(
+                instancia as never,
+            )
 
             await actualizarArchivoEstudio(9, 'estudios/5/nuevo.pdf')
 
@@ -290,7 +315,9 @@ describe('estudioService', () => {
                 archivoURL: path,
                 update: vi.fn().mockResolvedValue(actualizado),
             }
-            vi.mocked(estudioModel.findByPk).mockResolvedValue(instancia as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue(
+                instancia as never,
+            )
 
             await actualizarArchivoEstudio(9, path)
 
