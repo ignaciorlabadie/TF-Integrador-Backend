@@ -10,6 +10,8 @@ import type { DiaSemana } from '../types/DiaSemana.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
 import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
+import { MENSAJES } from '../errors/mensajes.js'
+import { profesionalService } from '../services/profesionalService.js'
 
 const TIPOS_ASIGNACION: readonly TipoAsignacionEspacio[] = [
     'FIJA',
@@ -124,6 +126,22 @@ function validarDatosAsignacion(body: Request['body']): DatosAsignacionEspacio {
     }
 }
 
+async function obtenerProfesionalDelUsuario(req: Request) {
+    const usuario = req.usuario
+
+    if (!usuario) {
+        throw new AppError(401, MENSAJES.AUTENTICACION_REQUERIDA)
+    }
+
+    const profesional = await profesionalService.buscarPorUsuarioId(usuario.id)
+
+    if (!profesional) {
+        throw new AppError(404, MENSAJES.PROFESIONAL_NO_ENCONTRADO)
+    }
+
+    return profesional
+}
+
 export class AsignacionEspacioController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
@@ -152,6 +170,11 @@ export class AsignacionEspacioController {
                 filtros.tipo = tipo
             }
 
+            if (req.usuario?.rol === 'PROFESIONAL') {
+                const profesional = await obtenerProfesionalDelUsuario(req)
+                filtros.profesionalId = profesional.id
+            }
+
             const asignaciones = await asignacionEspacioService.listar(filtros)
 
             return res.status(200).json(asignaciones)
@@ -170,6 +193,14 @@ export class AsignacionEspacioController {
                 throw new AppError(404, 'Asignación no encontrada')
             }
 
+            if (req.usuario?.rol === 'PROFESIONAL') {
+                const profesional = await obtenerProfesionalDelUsuario(req)
+
+                if (asignacion.profesionalId !== profesional.id) {
+                    throw new AppError(403, MENSAJES.SIN_PERMISOS)
+                }
+            }
+
             return res.status(200).json(asignacion)
         } catch (error) {
             return next(error)
@@ -179,6 +210,16 @@ export class AsignacionEspacioController {
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
             const datos = validarDatosAsignacion(req.body)
+
+            if (req.usuario?.rol === 'PROFESIONAL') {
+                const profesional = await obtenerProfesionalDelUsuario(req)
+
+                if (datos.tipo !== 'ESPECIFICA') {
+                    throw new AppError(403, MENSAJES.SIN_PERMISOS)
+                }
+
+                datos.profesionalId = profesional.id
+            }
 
             const asignacion = await asignacionEspacioService.crear(datos)
 
@@ -192,6 +233,25 @@ export class AsignacionEspacioController {
         try {
             const id = validarId(req.params.id)
             const datos = validarDatosAsignacion(req.body)
+
+            if (req.usuario?.rol === 'PROFESIONAL') {
+                const profesional = await obtenerProfesionalDelUsuario(req)
+                const existente = await asignacionEspacioService.buscarPorId(id)
+
+                if (!existente) {
+                    throw new AppError(404, 'Asignación no encontrada')
+                }
+
+                if (
+                    existente.profesionalId !== profesional.id ||
+                    existente.tipo !== 'ESPECIFICA' ||
+                    datos.tipo !== 'ESPECIFICA'
+                ) {
+                    throw new AppError(403, MENSAJES.SIN_PERMISOS)
+                }
+
+                datos.profesionalId = profesional.id
+            }
 
             const asignacion = await asignacionEspacioService.actualizar(
                 id,
@@ -207,6 +267,22 @@ export class AsignacionEspacioController {
     async eliminar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
+
+            if (req.usuario?.rol === 'PROFESIONAL') {
+                const profesional = await obtenerProfesionalDelUsuario(req)
+                const existente = await asignacionEspacioService.buscarPorId(id)
+
+                if (!existente) {
+                    throw new AppError(404, 'Asignación no encontrada')
+                }
+
+                if (
+                    existente.profesionalId !== profesional.id ||
+                    existente.tipo !== 'ESPECIFICA'
+                ) {
+                    throw new AppError(403, MENSAJES.SIN_PERMISOS)
+                }
+            }
 
             await asignacionEspacioService.eliminar(id)
 

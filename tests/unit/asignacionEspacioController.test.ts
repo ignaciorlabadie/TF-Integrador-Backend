@@ -12,15 +12,29 @@ vi.mock('../../src/services/asignacionEspacioService.js', () => ({
     },
 }))
 
+vi.mock('../../src/services/profesionalService.js', () => ({
+    profesionalService: {
+        buscarPorUsuarioId: vi.fn(),
+    },
+}))
+
 import { asignacionEspacioService } from '../../src/services/asignacionEspacioService.js'
+import { profesionalService } from '../../src/services/profesionalService.js'
 import { asignacionEspacioController } from '../../src/controllers/asignacionEspacioController.js'
+
+type UsuarioToken = {
+    id: number
+    email: string
+    rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN'
+}
 
 function crearMocks(
     body: object = {},
     params: Record<string, string> = {},
     query: Record<string, string> = {},
+    usuario?: UsuarioToken,
 ) {
-    const req = { body, params, query } as unknown as Request
+    const req = { body, params, query, usuario } as unknown as Request
 
     const res = {
         status: vi.fn().mockReturnThis(),
@@ -532,5 +546,436 @@ describe('asignacionEspacioController.eliminar', () => {
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+const usuarioProfesional: UsuarioToken = {
+    id: 77,
+    email: 'profe@test.com',
+    rol: 'PROFESIONAL',
+}
+
+const usuarioAdmin: UsuarioToken = {
+    id: 1,
+    email: 'admin@test.com',
+    rol: 'ADMIN',
+}
+
+const profesional = {
+    id: 5,
+    usuarioId: 77,
+    nombre: 'Ana',
+    apellido: 'Gomez',
+}
+
+const asignacionEspecifica = {
+    ...asignacion,
+    tipo: 'ESPECIFICA',
+    diaSemana: null,
+    fecha: '2027-10-25',
+}
+
+describe('asignacionEspacioController.listar - permisos', () => {
+    it('debe forzar el profesionalId del token para un PROFESIONAL', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.listar).mockResolvedValue(
+            [] as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            {},
+            { profesionalId: '999' },
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.listar(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).toHaveBeenCalledWith(77)
+        expect(asignacionEspacioService.listar).toHaveBeenCalledWith({
+            profesionalId: 5,
+        })
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('debe permitir a un ADMIN filtrar por cualquier profesional', async () => {
+        vi.mocked(asignacionEspacioService.listar).mockResolvedValue(
+            [] as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            {},
+            { profesionalId: '999' },
+            usuarioAdmin,
+        )
+
+        await asignacionEspacioController.listar(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).not.toHaveBeenCalled()
+        expect(asignacionEspacioService.listar).toHaveBeenCalledWith({
+            profesionalId: 999,
+        })
+    })
+
+    it('debe responder 404 si el PROFESIONAL no tiene perfil', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(null)
+
+        const { req, res, next } = crearMocks({}, {}, {}, usuarioProfesional)
+
+        await asignacionEspacioController.listar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(asignacionEspacioService.listar).not.toHaveBeenCalled()
+    })
+})
+
+describe('asignacionEspacioController.buscarPorId - permisos', () => {
+    it('debe permitir al PROFESIONAL ver su propia asignación', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.buscarPorId(req, res, next)
+
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(asignacion)
+    })
+
+    it('debe responder 403 si la asignación es de otro profesional', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue({
+            ...asignacion,
+            profesionalId: 99,
+        } as never)
+
+        const { req, res, next } = crearMocks(
+            {},
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe permitir a un ADMIN ver cualquier asignación', async () => {
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue({
+            ...asignacion,
+            profesionalId: 99,
+        } as never)
+
+        const { req, res, next } = crearMocks({}, { id: '1' }, {}, usuarioAdmin)
+
+        await asignacionEspacioController.buscarPorId(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).not.toHaveBeenCalled()
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+})
+
+describe('asignacionEspacioController.crear - permisos', () => {
+    it('debe forzar el profesionalId del token para un PROFESIONAL', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.crear).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            { ...datosEspecifica, profesionalId: 999 },
+            {},
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.crear(req, res, next)
+
+        expect(asignacionEspacioService.crear).toHaveBeenCalledWith({
+            ...datosEspecifica,
+            profesionalId: 5,
+        })
+        expect(res.status).toHaveBeenCalledWith(201)
+    })
+
+    it('debe responder 403 si un PROFESIONAL intenta crear una FIJA', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            datosFija,
+            {},
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si el PROFESIONAL no tiene perfil', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(null)
+
+        const { req, res, next } = crearMocks(
+            datosEspecifica,
+            {},
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(asignacionEspacioService.crear).not.toHaveBeenCalled()
+    })
+
+    it('debe permitir a un ADMIN crear con el profesionalId del body', async () => {
+        vi.mocked(asignacionEspacioService.crear).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(datosFija, {}, {}, usuarioAdmin)
+
+        await asignacionEspacioController.crear(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).not.toHaveBeenCalled()
+        expect(asignacionEspacioService.crear).toHaveBeenCalledWith(datosFija)
+    })
+})
+
+describe('asignacionEspacioController.actualizar - permisos', () => {
+    it('debe permitir al PROFESIONAL actualizar su propia ESPECIFICA', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacionEspecifica as never,
+        )
+        vi.mocked(asignacionEspacioService.actualizar).mockResolvedValue(
+            asignacionEspecifica as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            { ...datosEspecifica, profesionalId: 999 },
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.actualizar(req, res, next)
+
+        expect(asignacionEspacioService.actualizar).toHaveBeenCalledWith(1, {
+            ...datosEspecifica,
+            profesionalId: 5,
+        })
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+
+    it('debe responder 403 si la asignación es de otro profesional', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue({
+            ...asignacionEspecifica,
+            profesionalId: 99,
+        } as never)
+
+        const { req, res, next } = crearMocks(
+            datosEspecifica,
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 403 si un PROFESIONAL intenta editar una FIJA propia', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            datosEspecifica,
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 403 si un PROFESIONAL intenta cambiar a FIJA', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacionEspecifica as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            datosFija,
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.actualizar).not.toHaveBeenCalled()
+    })
+
+    it('debe permitir a un ADMIN actualizar cualquier asignación', async () => {
+        vi.mocked(asignacionEspacioService.actualizar).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            datosFija,
+            { id: '1' },
+            {},
+            usuarioAdmin,
+        )
+
+        await asignacionEspacioController.actualizar(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).not.toHaveBeenCalled()
+        expect(asignacionEspacioService.actualizar).toHaveBeenCalledWith(
+            1,
+            datosFija,
+        )
+        expect(res.status).toHaveBeenCalledWith(200)
+    })
+})
+
+describe('asignacionEspacioController.eliminar - permisos', () => {
+    it('debe permitir al PROFESIONAL eliminar su propia ESPECIFICA', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacionEspecifica as never,
+        )
+        vi.mocked(asignacionEspacioService.eliminar).mockResolvedValue(
+            undefined,
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.eliminar(req, res, next)
+
+        expect(asignacionEspacioService.eliminar).toHaveBeenCalledWith(1)
+        expect(res.status).toHaveBeenCalledWith(204)
+    })
+
+    it('debe responder 403 si la asignación es de otro profesional', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue({
+            ...asignacionEspecifica,
+            profesionalId: 99,
+        } as never)
+
+        const { req, res, next } = crearMocks(
+            {},
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.eliminar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.eliminar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 403 si un PROFESIONAL intenta eliminar una FIJA propia', async () => {
+        vi.mocked(profesionalService.buscarPorUsuarioId).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioService.buscarPorId).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const { req, res, next } = crearMocks(
+            {},
+            { id: '1' },
+            {},
+            usuarioProfesional,
+        )
+
+        await asignacionEspacioController.eliminar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 }),
+        )
+        expect(asignacionEspacioService.eliminar).not.toHaveBeenCalled()
+    })
+
+    it('debe permitir a un ADMIN eliminar cualquier asignación', async () => {
+        vi.mocked(asignacionEspacioService.eliminar).mockResolvedValue(
+            undefined,
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '1' }, {}, usuarioAdmin)
+
+        await asignacionEspacioController.eliminar(req, res, next)
+
+        expect(profesionalService.buscarPorUsuarioId).not.toHaveBeenCalled()
+        expect(asignacionEspacioService.eliminar).toHaveBeenCalledWith(1)
+        expect(res.status).toHaveBeenCalledWith(204)
     })
 })
