@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
-import jwt from 'jsonwebtoken'
 
 vi.mock('../../src/models/Usuario.js', async () => {
     const mocks = await import('../helpers/mocksModelos.js')
@@ -91,7 +90,9 @@ describe('GET /api/autorizacionestudios/:id/vigencia', () => {
             estaVencida: () => false,
         } as never)
 
-        const respuesta = await request(app).get('/api/autorizacionestudios/5/vigencia')
+        const respuesta = await request(app).get(
+            '/api/autorizacionestudios/5/vigencia',
+        )
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body).toEqual({
@@ -104,7 +105,9 @@ describe('GET /api/autorizacionestudios/:id/vigencia', () => {
     it('debe responder 404 si no existe', async () => {
         vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(null)
 
-        const respuesta = await request(app).get('/api/autorizacionestudios/99/vigencia')
+        const respuesta = await request(app).get(
+            '/api/autorizacionestudios/99/vigencia',
+        )
 
         expect(respuesta.status).toBe(404)
     })
@@ -120,7 +123,9 @@ describe('POST /api/autorizacionestudios', () => {
 
     it('debe crear la autorización con 201', async () => {
         vi.mocked(estudioModel.findByPk).mockResolvedValue({ id: 1 } as never)
-        vi.mocked(profesionalModel.findByPk).mockResolvedValue({ id: 2 } as never)
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue({
+            id: 2,
+        } as never)
         vi.mocked(autorizacionEstudioModel.findOne).mockResolvedValue(null)
         vi.mocked(autorizacionEstudioModel.create).mockResolvedValue({
             id: 10,
@@ -183,7 +188,9 @@ describe('POST /api/autorizacionestudios', () => {
         vi.setSystemTime(new Date('2026-11-07T10:00:00.000Z'))
 
         vi.mocked(estudioModel.findByPk).mockResolvedValue({ id: 1 } as never)
-        vi.mocked(profesionalModel.findByPk).mockResolvedValue({ id: 2 } as never)
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue({
+            id: 2,
+        } as never)
         vi.mocked(autorizacionEstudioModel.findOne).mockResolvedValue({
             id: 1,
         } as never)
@@ -207,8 +214,9 @@ describe('PATCH /api/autorizacionestudios/:id/revocar', () => {
             instancia as never,
         )
 
-        const respuesta = await request(app)
-            .patch('/api/autorizacionestudios/5/revocar')
+        const respuesta = await request(app).patch(
+            '/api/autorizacionestudios/5/revocar',
+        )
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.estado).toBe('VENCIDO')
@@ -217,8 +225,9 @@ describe('PATCH /api/autorizacionestudios/:id/revocar', () => {
     it('debe responder 404 si no existe', async () => {
         vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(null)
 
-        const respuesta = await request(app)
-            .patch('/api/autorizacionestudios/99/revocar')
+        const respuesta = await request(app).patch(
+            '/api/autorizacionestudios/99/revocar',
+        )
 
         expect(respuesta.status).toBe(404)
     })

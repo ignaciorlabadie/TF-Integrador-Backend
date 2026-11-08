@@ -74,8 +74,12 @@ describe('autorizacionEstudioService', () => {
         }
 
         it('debe crear la autorización con estado DISPONIBLE cuando todo es válido', async () => {
-            vi.mocked(estudioModel.findByPk).mockResolvedValue({ id: 1 } as never)
-            vi.mocked(profesionalModel.findByPk).mockResolvedValue({ id: 2 } as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue({
+                id: 1,
+            } as never)
+            vi.mocked(profesionalModel.findByPk).mockResolvedValue({
+                id: 2,
+            } as never)
             vi.mocked(autorizacionEstudioModel.findOne).mockResolvedValue(null)
             const creado = { id: 10, ...data, estado: 'DISPONIBLE' }
             vi.mocked(autorizacionEstudioModel.create).mockResolvedValue(
@@ -107,7 +111,9 @@ describe('autorizacionEstudioService', () => {
         })
 
         it('debe rechazar 404 si el profesional no existe', async () => {
-            vi.mocked(estudioModel.findByPk).mockResolvedValue({ id: 1 } as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue({
+                id: 1,
+            } as never)
             vi.mocked(profesionalModel.findByPk).mockResolvedValue(null)
 
             await expect(
@@ -124,8 +130,12 @@ describe('autorizacionEstudioService', () => {
             vi.useFakeTimers()
             vi.setSystemTime(new Date('2026-11-07T10:00:00.000Z'))
 
-            vi.mocked(estudioModel.findByPk).mockResolvedValue({ id: 1 } as never)
-            vi.mocked(profesionalModel.findByPk).mockResolvedValue({ id: 2 } as never)
+            vi.mocked(estudioModel.findByPk).mockResolvedValue({
+                id: 1,
+            } as never)
+            vi.mocked(profesionalModel.findByPk).mockResolvedValue({
+                id: 2,
+            } as never)
             vi.mocked(autorizacionEstudioModel.findOne).mockResolvedValue({
                 id: 1,
             } as never)
