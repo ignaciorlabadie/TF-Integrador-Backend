@@ -9,6 +9,7 @@ function crearModeloMock() {
         create: vi.fn(),
         update: vi.fn(),
         destroy: vi.fn(),
+        count: vi.fn(),
         hasOne: vi.fn(),
         belongsTo: vi.fn(),
         hasMany: vi.fn(),
