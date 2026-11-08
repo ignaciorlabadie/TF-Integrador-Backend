@@ -668,3 +668,34 @@ describe('asignacionEspacioService.actualizar', () => {
         expect(resultado).toEqual(asignacion)
     })
 })
+
+describe('asignacionEspacioService.eliminar', () => {
+    it('debe responder 404 si la asignación no existe', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.eliminar(asignacion.id),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.destroy).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si el id es inválido', async () => {
+        await expect(
+            asignacionEspacioService.eliminar(0),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(asignacionEspacioModel.destroy).not.toHaveBeenCalled()
+    })
+
+    it('debe eliminar la asignación existente', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+        vi.mocked(asignacionEspacioModel.destroy).mockResolvedValue(1 as never)
+
+        await asignacionEspacioService.eliminar(asignacion.id)
+
+        expect(asignacionEspacioModel.destroy).toHaveBeenCalledWith({
+            where: { id: asignacion.id },
+        })
+    })
+})

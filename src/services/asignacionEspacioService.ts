@@ -445,6 +445,21 @@ export class AsignacionEspacioService {
 
         return this.buscarPorId(idValidado)
     }
+
+    async eliminar(id: number): Promise<void> {
+        const idValidado = validarIdentificador(id, 'ID de la asignación')
+
+        const existente = await AsignacionEspacio.findByPk(idValidado)
+
+        if (!existente) {
+            throw new AppError(
+                404,
+                MENSAJES_ASIGNACION.ASIGNACION_NO_ENCONTRADA,
+            )
+        }
+
+        await AsignacionEspacio.destroy({ where: { id: idValidado } })
+    }
 }
 
 export const asignacionEspacioService = new AsignacionEspacioService()
