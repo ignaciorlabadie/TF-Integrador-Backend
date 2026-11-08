@@ -41,7 +41,10 @@ import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
 
-function tokenPara(id: number, rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN') {
+function tokenPara(
+    id: number,
+    rol: 'PACIENTE' | 'PROFESIONAL' | 'ADMIN',
+) {
     return jwt.sign(
         { id, email: `${rol.toLowerCase()}@test.com`, rol },
         JWT_SECRET,
@@ -143,7 +146,10 @@ describe('GET /api/estudios/:id', () => {
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.id).toBe(1)
         expect(respuesta.body.paciente.dni).toBe('12345678')
-        expect(estudioModel.findByPk).toHaveBeenCalledWith(1, expect.any(Object))
+        expect(estudioModel.findByPk).toHaveBeenCalledWith(
+            1,
+            expect.any(Object),
+        )
     })
 
     it('debe responder 404 cuando el estudio no existe', async () => {
@@ -299,7 +305,9 @@ describe('POST /api/estudios', () => {
 
 describe('PUT /api/estudios/:id/archivo', () => {
     it('debe responder 401 sin token', async () => {
-        const respuesta = await request(app).put('/api/estudios/1/archivo')
+        const respuesta = await request(app).put(
+            '/api/estudios/1/archivo',
+        )
 
         expect(respuesta.status).toBe(401)
     })
