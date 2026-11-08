@@ -1,3 +1,4 @@
+import { Op } from 'sequelize'
 import { AsignacionEspacio, Espacio, Profesional } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
@@ -45,6 +46,16 @@ const DIAS_SEMANA: readonly DiaSemana[] = [
     'DOMINGO',
 ]
 
+const DIAS_POR_INDICE: readonly DiaSemana[] = [
+    'DOMINGO',
+    'LUNES',
+    'MARTES',
+    'MIERCOLES',
+    'JUEVES',
+    'VIERNES',
+    'SABADO',
+]
+
 const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
 
 const MENSAJES_ASIGNACION = {
@@ -61,6 +72,8 @@ const MENSAJES_ASIGNACION = {
     ESPACIO_NO_ENCONTRADO: 'Espacio no encontrado',
     ESPACIO_INACTIVO: 'No se puede asignar un espacio inactivo',
     PROFESIONAL_NO_ENCONTRADO: 'Profesional no encontrado',
+    SOLAPAMIENTO:
+        'La asignación se superpone con otra existente para el espacio y/o profesional',
 } as const
 
 function validarIdentificador(valor: unknown, nombreCampo: string): number {
@@ -114,6 +127,85 @@ function normalizarHora(valor: unknown, nombreCampo: string): string {
     }
 
     return valor.slice(0, 5)
+}
+
+function diaSemanaDeFecha(fecha: string): DiaSemana | null {
+    const fechaNormalizada = fecha.slice(0, 10)
+    const fechaParseada = new Date(`${fechaNormalizada}T00:00:00Z`)
+
+    if (Number.isNaN(fechaParseada.getTime())) {
+        return null
+    }
+
+    return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
+}
+
+function diaDeAsignacion(asignacion: AsignacionEspacio): DiaSemana | null {
+    if (asignacion.tipo === 'FIJA') {
+        return asignacion.diaSemana
+    }
+
+    return asignacion.fecha ? diaSemanaDeFecha(asignacion.fecha) : null
+}
+
+function haySolapamiento(
+    inicioA: number,
+    finA: number,
+    inicioB: number,
+    finB: number,
+): boolean {
+    return inicioA < finB && finA > inicioB
+}
+
+async function verificarSolapamiento(
+    datos: DatosAsignacionValidados,
+): Promise<void> {
+    const candidatas = await AsignacionEspacio.findAll({
+        where: {
+            [Op.or]: [
+                { espacioId: datos.espacioId },
+                { profesionalId: datos.profesionalId },
+            ],
+        },
+    })
+
+    const diaNuevo =
+        datos.tipo === 'FIJA'
+            ? datos.diaSemana
+            : datos.fecha
+              ? diaSemanaDeFecha(datos.fecha)
+              : null
+
+    const inicioNuevo = horaAMinutos(datos.horaInicio)
+    const finNuevo = horaAMinutos(datos.horaFin)
+
+    if (diaNuevo === null || inicioNuevo === null || finNuevo === null) {
+        return
+    }
+
+    const conflicto = candidatas.some((candidata) => {
+        if (diaDeAsignacion(candidata) !== diaNuevo) {
+            return false
+        }
+
+        const inicioCandidata = horaAMinutos(candidata.horaInicio)
+        const finCandidata = horaAMinutos(candidata.horaFin)
+
+        if (inicioCandidata === null || finCandidata === null) {
+            return false
+        }
+
+        return haySolapamiento(
+            inicioNuevo,
+            finNuevo,
+            inicioCandidata,
+            finCandidata,
+        )
+    })
+
+    if (conflicto) {
+        throw new AppError(409, MENSAJES_ASIGNACION.SOLAPAMIENTO)
+    }
 }
 
 function incluirRelaciones() {
@@ -275,6 +367,8 @@ export class AsignacionEspacioService {
                 MENSAJES_ASIGNACION.PROFESIONAL_NO_ENCONTRADO,
             )
         }
+
+        await verificarSolapamiento(datosValidados)
 
         const asignacion = await AsignacionEspacio.create({
             espacioId: datosValidados.espacioId,

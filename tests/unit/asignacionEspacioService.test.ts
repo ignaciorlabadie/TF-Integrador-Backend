@@ -386,3 +386,152 @@ describe('asignacionEspacioService.crear - existencia y alta', () => {
         expect(resultado).toEqual(asignacionEspecifica)
     })
 })
+
+describe('asignacionEspacioService.crear - solapamientos', () => {
+    function prepararAlta() {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioModel.create).mockResolvedValue({
+            id: 1,
+        } as never)
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+    }
+
+    it('debe responder 409 si se superpone con otra asignación del mismo espacio', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 6,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '09:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si se superpone con otra asignación del mismo profesional', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 11,
+                profesionalId: 5,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '09:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('no debe considerar conflicto si los intervalos solo se tocan', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 5,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '08:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await asignacionEspacioService.crear({
+            ...datosFija,
+            horaInicio: '10:00',
+            horaFin: '12:00',
+        })
+
+        expect(asignacionEspacioModel.create).toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si una FIJA se superpone con una ESPECIFICA del mismo día', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 6,
+                tipo: 'ESPECIFICA',
+                diaSemana: null,
+                fecha: '2027-10-25',
+                horaInicio: '09:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await expect(
+            asignacionEspacioService.crear(datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+    })
+
+    it('no debe considerar conflicto si es otro día', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 5,
+                tipo: 'FIJA',
+                diaSemana: 'MARTES',
+                fecha: null,
+                horaInicio: '08:00',
+                horaFin: '12:00',
+            },
+        ] as never)
+
+        await asignacionEspacioService.crear(datosFija)
+
+        expect(asignacionEspacioModel.create).toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si una ESPECIFICA se superpone con una FIJA del mismo día', async () => {
+        prepararAlta()
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 6,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '09:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await expect(
+            asignacionEspacioService.crear(datosEspecifica),
+        ).rejects.toMatchObject({ statusCode: 409 })
+    })
+})
