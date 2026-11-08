@@ -1,4 +1,4 @@
-import { Op } from 'sequelize'
+import { Op, type WhereOptions } from 'sequelize'
 import { AsignacionEspacio, Espacio, Profesional } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
@@ -74,6 +74,7 @@ const MENSAJES_ASIGNACION = {
     PROFESIONAL_NO_ENCONTRADO: 'Profesional no encontrado',
     SOLAPAMIENTO:
         'La asignación se superpone con otra existente para el espacio y/o profesional',
+    ASIGNACION_NO_ENCONTRADA: 'Asignación no encontrada',
 } as const
 
 function validarIdentificador(valor: unknown, nombreCampo: string): number {
@@ -159,15 +160,17 @@ function haySolapamiento(
 
 async function verificarSolapamiento(
     datos: DatosAsignacionValidados,
+    idExcluir?: number,
 ): Promise<void> {
-    const candidatas = await AsignacionEspacio.findAll({
-        where: {
-            [Op.or]: [
-                { espacioId: datos.espacioId },
-                { profesionalId: datos.profesionalId },
-            ],
-        },
-    })
+    const where = {
+        [Op.or]: [
+            { espacioId: datos.espacioId },
+            { profesionalId: datos.profesionalId },
+        ],
+        ...(idExcluir === undefined ? {} : { id: { [Op.ne]: idExcluir } }),
+    } as WhereOptions
+
+    const candidatas = await AsignacionEspacio.findAll({ where })
 
     const diaNuevo =
         datos.tipo === 'FIJA'
@@ -184,6 +187,10 @@ async function verificarSolapamiento(
     }
 
     const conflicto = candidatas.some((candidata) => {
+        if (idExcluir !== undefined && candidata.id === idExcluir) {
+            return false
+        }
+
         if (diaDeAsignacion(candidata) !== diaNuevo) {
             return false
         }
@@ -381,6 +388,62 @@ export class AsignacionEspacioService {
         })
 
         return this.buscarPorId(asignacion.id)
+    }
+
+    async actualizar(
+        id: number,
+        datos: DatosAsignacionEspacio,
+    ): Promise<AsignacionEspacio | null> {
+        const idValidado = validarIdentificador(id, 'ID de la asignación')
+
+        const existente = await AsignacionEspacio.findByPk(idValidado)
+
+        if (!existente) {
+            throw new AppError(
+                404,
+                MENSAJES_ASIGNACION.ASIGNACION_NO_ENCONTRADA,
+            )
+        }
+
+        const datosValidados = validarDatosCreacion(datos)
+
+        const espacio = await Espacio.findByPk(datosValidados.espacioId)
+
+        if (!espacio) {
+            throw new AppError(404, MENSAJES_ASIGNACION.ESPACIO_NO_ENCONTRADO)
+        }
+
+        if (!espacio.activo) {
+            throw new AppError(409, MENSAJES_ASIGNACION.ESPACIO_INACTIVO)
+        }
+
+        const profesional = await Profesional.findByPk(
+            datosValidados.profesionalId,
+        )
+
+        if (!profesional) {
+            throw new AppError(
+                404,
+                MENSAJES_ASIGNACION.PROFESIONAL_NO_ENCONTRADO,
+            )
+        }
+
+        await verificarSolapamiento(datosValidados, idValidado)
+
+        await AsignacionEspacio.update(
+            {
+                espacioId: datosValidados.espacioId,
+                profesionalId: datosValidados.profesionalId,
+                tipo: datosValidados.tipo,
+                diaSemana: datosValidados.diaSemana,
+                fecha: datosValidados.fecha,
+                horaInicio: datosValidados.horaInicio,
+                horaFin: datosValidados.horaFin,
+            },
+            { where: { id: idValidado } },
+        )
+
+        return this.buscarPorId(idValidado)
     }
 }
 

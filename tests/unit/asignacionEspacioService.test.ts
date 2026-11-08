@@ -535,3 +535,136 @@ describe('asignacionEspacioService.crear - solapamientos', () => {
         ).rejects.toMatchObject({ statusCode: 409 })
     })
 })
+
+describe('asignacionEspacioService.actualizar', () => {
+    it('debe responder 404 si la asignación no existe', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, datosFija),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si los datos son inválidos', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, {
+                ...datosFija,
+                horaInicio: '12:00',
+                horaFin: '08:00',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si el espacio no existe', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, datosFija),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si el espacio está inactivo', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+        vi.mocked(espacioModel.findByPk).mockResolvedValue({
+            ...espacioActivo,
+            activo: false,
+        } as never)
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si el profesional no existe', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, datosFija),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si se superpone con otra asignación', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            {
+                ...asignacion,
+                id: 99,
+                espacioId: 10,
+                profesionalId: 6,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '09:00',
+                horaFin: '10:00',
+            },
+        ] as never)
+
+        await expect(
+            asignacionEspacioService.actualizar(asignacion.id, datosFija),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(asignacionEspacioModel.update).not.toHaveBeenCalled()
+    })
+
+    it('debe actualizar y retornar la asignación sin chocar consigo misma', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk)
+            .mockResolvedValueOnce(asignacion as never)
+            .mockResolvedValueOnce(asignacion as never)
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(
+            espacioActivo as never,
+        )
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(
+            profesional as never,
+        )
+        vi.mocked(asignacionEspacioModel.findAll).mockResolvedValue([
+            asignacion,
+        ] as never)
+        vi.mocked(asignacionEspacioModel.update).mockResolvedValue([1] as never)
+
+        const resultado = await asignacionEspacioService.actualizar(
+            asignacion.id,
+            datosFija,
+        )
+
+        expect(asignacionEspacioModel.update).toHaveBeenCalledWith(
+            {
+                espacioId: 10,
+                profesionalId: 5,
+                tipo: 'FIJA',
+                diaSemana: 'LUNES',
+                fecha: null,
+                horaInicio: '08:00',
+                horaFin: '12:00',
+            },
+            { where: { id: asignacion.id } },
+        )
+        expect(resultado).toEqual(asignacion)
+    })
+})
