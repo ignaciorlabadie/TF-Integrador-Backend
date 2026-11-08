@@ -31,7 +31,14 @@ router.get(
     verificarRol('ADMIN', 'PACIENTE'),
     obtenerEstudiosPaciente,
 )
-router.post('/', verificarToken, verificarRol('ADMIN'), registrarEstudio)
+
+router.post(
+    '/',
+    verificarToken,
+    verificarRol('ADMIN'),
+    uploadEstudio.single('archivo'),
+    registrarEstudio,
+)
 router.put(
     '/:id/archivo',
     verificarToken,
