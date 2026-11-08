@@ -51,5 +51,16 @@ export function databaseMock() {
     return {
         authenticate: vi.fn(),
         transaction: transactionMock,
-    }
+        define: vi.fn(),
+        queryInterface: {
+            createTable: vi.fn(),
+            dropTable: vi.fn(),
+            renameTable: vi.fn(),
+            addColumn: vi.fn(),
+            removeColumn: vi.fn(),
+        },
+        models: {},
+        addModel: vi.fn(),
+        addModels: vi.fn(),
+    } as Record<string, unknown>
 }
