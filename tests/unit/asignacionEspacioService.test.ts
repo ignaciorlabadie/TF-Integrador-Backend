@@ -92,3 +92,44 @@ describe('asignacionEspacioService.listar', () => {
         expect(asignacionEspacioModel.findAll).not.toHaveBeenCalled()
     })
 })
+
+describe('asignacionEspacioService.buscarPorId', () => {
+    it('debe rechazar un ID inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.buscarPorId(0),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(asignacionEspacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe retornar la asignación con sus relaciones', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(
+            asignacion as never,
+        )
+
+        const resultado = await asignacionEspacioService.buscarPorId(1)
+
+        expect(asignacionEspacioModel.findByPk).toHaveBeenCalledWith(1, {
+            include: [
+                {
+                    model: espacioModel,
+                    as: 'espacio',
+                    attributes: ['id', 'nombre', 'tipo', 'ubicacion', 'activo'],
+                },
+                {
+                    model: profesionalModel,
+                    as: 'profesional',
+                    attributes: ['id', 'nombre', 'apellido'],
+                },
+            ],
+        })
+        expect(resultado).toEqual(asignacion)
+    })
+
+    it('debe retornar null si no existe', async () => {
+        vi.mocked(asignacionEspacioModel.findByPk).mockResolvedValue(null)
+
+        const resultado = await asignacionEspacioService.buscarPorId(999)
+
+        expect(resultado).toBeNull()
+    })
+})

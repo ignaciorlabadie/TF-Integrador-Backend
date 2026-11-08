@@ -80,6 +80,13 @@ export class AsignacionEspacioService {
             order: [['id', 'ASC']],
         })
     }
+
+    async buscarPorId(id: number): Promise<AsignacionEspacio | null> {
+        return AsignacionEspacio.findByPk(
+            validarIdentificador(id, 'ID de la asignación'),
+            { include: incluirRelaciones() },
+        )
+    }
 }
 
 export const asignacionEspacioService = new AsignacionEspacioService()
