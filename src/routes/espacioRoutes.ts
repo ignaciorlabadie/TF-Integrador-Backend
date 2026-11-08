@@ -17,12 +17,7 @@ router.get('/', verificarToken, espacioController.listar)
 
 router.get('/:id', verificarToken, espacioController.buscarPorId)
 
-router.post(
-    '/',
-    verificarToken,
-    verificarRol('ADMIN'),
-    espacioController.crear,
-)
+router.post('/', verificarToken, verificarRol('ADMIN'), espacioController.crear)
 
 router.put(
     '/:id',

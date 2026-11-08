@@ -1,5 +1,10 @@
 import { Op } from 'sequelize'
-import { Espacio, AsignacionEspacio, Profesional, TarifaEspacios } from '../models/index.js'
+import {
+    Espacio,
+    AsignacionEspacio,
+    Profesional,
+    TarifaEspacios,
+} from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { esFechaValida, esTextoValido } from '../utils/validacion.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
@@ -71,9 +76,7 @@ function validarTipo(valor: unknown): TipoEspacio {
     return valor
 }
 
-function esUbicacionEspacioValida(
-    valor: unknown,
-): valor is UbicacionEspacio {
+function esUbicacionEspacioValida(valor: unknown): valor is UbicacionEspacio {
     return (
         typeof valor === 'string' &&
         (UBICACIONES_ESPACIO as readonly string[]).includes(valor)
@@ -263,10 +266,7 @@ export class EspacioService {
         ])
 
         if (asignaciones > 0 || tarifas > 0) {
-            throw new AppError(
-                409,
-                MENSAJES_ESPACIO.ESPACIO_CON_DEPENDENCIAS,
-            )
+            throw new AppError(409, MENSAJES_ESPACIO.ESPACIO_CON_DEPENDENCIAS)
         }
 
         await espacio.destroy()

@@ -1,7 +1,11 @@
 import type { NextFunction, Request, Response } from 'express'
 
 import { espacioService } from '../services/espacioService.js'
-import type { DatosActualizarEspacio, DatosEspacio, ListarEspaciosFiltros } from '../services/espacioService.js'
+import type {
+    DatosActualizarEspacio,
+    DatosEspacio,
+    ListarEspaciosFiltros,
+} from '../services/espacioService.js'
 import { AppError } from '../errors/AppError.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
 import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
@@ -18,9 +22,7 @@ function esTipoEspacioValido(valor: unknown): valor is TipoEspacio {
     )
 }
 
-function esUbicacionEspacioValida(
-    valor: unknown,
-): valor is UbicacionEspacio {
+function esUbicacionEspacioValida(valor: unknown): valor is UbicacionEspacio {
     return (
         typeof valor === 'string' &&
         (UBICACIONES_ESPACIO as readonly string[]).includes(valor)
@@ -101,11 +103,7 @@ function validarDatosActualizarEspacio(
 }
 
 export class EspacioController {
-    async obtenerOcupacion(
-        req: Request,
-        res: Response,
-        next: NextFunction,
-    ) {
+    async obtenerOcupacion(req: Request, res: Response, next: NextFunction) {
         try {
             const { start, end } = req.query
 
