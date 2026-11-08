@@ -6,11 +6,7 @@ vi.mock('../../src/models/index.js', async () => {
     return mocks.modelosMock()
 })
 
-import {
-    asignacionEspacioModel,
-    espacioModel,
-    profesionalModel,
-} from '../helpers/mocksModelos.js'
+import { asignacionEspacioModel, espacioModel, profesionalModel } from '../helpers/mocksModelos.js'
 import { asignacionEspacioService } from '../../src/services/asignacionEspacioService.js'
 
 const asignacion = {
@@ -20,6 +16,26 @@ const asignacion = {
     tipo: 'FIJA',
     diaSemana: 'LUNES',
     fecha: null,
+    horaInicio: '08:00',
+    horaFin: '12:00',
+}
+
+const datosFija = {
+    espacioId: 10,
+    profesionalId: 5,
+    tipo: 'FIJA' as const,
+    diaSemana: 'LUNES' as const,
+    fecha: null,
+    horaInicio: '08:00',
+    horaFin: '12:00',
+}
+
+const datosEspecifica = {
+    espacioId: 10,
+    profesionalId: 5,
+    tipo: 'ESPECIFICA' as const,
+    diaSemana: null,
+    fecha: '2027-10-25',
     horaInicio: '08:00',
     horaFin: '12:00',
 }
@@ -131,5 +147,122 @@ describe('asignacionEspacioService.buscarPorId', () => {
         const resultado = await asignacionEspacioService.buscarPorId(999)
 
         expect(resultado).toBeNull()
+    })
+})
+
+describe('asignacionEspacioService.crear - validaciones', () => {
+    it('debe rechazar datos inválidos con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear(null as never),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(asignacionEspacioModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un espacioId inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({ ...datosFija, espacioId: 0 }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un profesionalId inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                profesionalId: -1,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un tipo inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                tipo: 'OTRA' as never,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un formato de hora inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                horaInicio: '9:00',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un rango horario inválido con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                horaInicio: '12:00',
+                horaFin: '08:00',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una FIJA sin día de semana con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                diaSemana: null,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una FIJA con fecha con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosFija,
+                fecha: '2027-10-25',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una ESPECIFICA sin fecha con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosEspecifica,
+                fecha: null,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una ESPECIFICA con día de semana con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosEspecifica,
+                diaSemana: 'LUNES',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una ESPECIFICA con fecha inválida con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosEspecifica,
+                fecha: '2027-13-01',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una ESPECIFICA con fecha pasada con 400', async () => {
+        await expect(
+            asignacionEspacioService.crear({
+                ...datosEspecifica,
+                fecha: '2020-01-01',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
     })
 })
