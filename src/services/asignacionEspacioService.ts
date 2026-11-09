@@ -1,7 +1,9 @@
 import { Op, type WhereOptions } from 'sequelize'
 import { AsignacionEspacio, Espacio, Profesional } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
 import { esFechaValida } from '../utils/validacion.js'
 
@@ -30,21 +32,6 @@ interface DatosAsignacionValidados {
     horaInicio: string
     horaFin: string
 }
-
-const TIPOS_ASIGNACION: readonly TipoAsignacionEspacio[] = [
-    'FIJA',
-    'ESPECIFICA',
-]
-
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
 
 const DIAS_POR_INDICE: readonly DiaSemana[] = [
     'DOMINGO',

@@ -26,6 +26,7 @@ import { Op } from 'sequelize'
 import { Agenda, Profesional, Turno } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 
 export interface ListarAgendasFiltros {
@@ -100,16 +101,6 @@ const MENSAJES_AGENDA = {
     TURNOS_FUTUROS_PENDIENTES:
         'No se puede desactivar la agenda porque tiene turnos futuros registrados',
 } as const
-
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
 
 // getUTCDay() devuelve 0=domingo ... 6=sábado.
 // Este array traduce ese índice al ENUM usado por el modelo Agenda.

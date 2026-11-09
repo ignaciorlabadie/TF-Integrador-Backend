@@ -7,7 +7,9 @@ import {
 } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { esFechaValida, esTextoValido } from '../utils/validacion.js'
+import { TIPOS_ESPACIO } from '../types/TipoEspacio.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
+import { UBICACIONES_ESPACIO } from '../types/UbicacionEspacio.js'
 import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
 
 export interface ListarEspaciosFiltros {
@@ -23,9 +25,6 @@ export interface DatosEspacio {
 }
 
 export type DatosActualizarEspacio = Partial<DatosEspacio>
-
-const TIPOS_ESPACIO: readonly TipoEspacio[] = ['GIMNASIO', 'CONSULTORIO']
-const UBICACIONES_ESPACIO: readonly UbicacionEspacio[] = ['ADELANTE', 'ATRAS']
 
 const MENSAJES_ESPACIO = {
     ESPACIO_NO_ENCONTRADO: 'Espacio no encontrado',

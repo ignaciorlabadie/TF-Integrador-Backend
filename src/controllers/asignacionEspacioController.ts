@@ -6,27 +6,14 @@ import type {
     ListarAsignacionesEspacioFiltros,
 } from '../services/asignacionEspacioService.js'
 import { AppError } from '../errors/AppError.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
 import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { profesionalService } from '../services/profesionalService.js'
-
-const TIPOS_ASIGNACION: readonly TipoAsignacionEspacio[] = [
-    'FIJA',
-    'ESPECIFICA',
-]
-
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
 
 const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
