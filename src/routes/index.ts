@@ -8,6 +8,7 @@ import rolRoutes from './rolRoutes.js'
 import estudioRoutes from './estudioRoutes.js'
 import autorizacionEstudioRoutes from './autorizacionEstudioRoutes.js'
 import espacioRoutes from './espacioRoutes.js'
+import asignacionEspacioRoutes from './asignacionesEspacioRoutes.js'
 import agendaRoutes from './agendaRoutes.js'
 import turnoRoutes from './turnoRoutes.js'
 
@@ -22,6 +23,7 @@ router.get('/', (_req, res) => {
 router.use('/auth', authRoutes)
 router.use('/usuarios', usuarioRoutes)
 router.use('/espacios', espacioRoutes)
+router.use('/asignaciones-espacio', asignacionEspacioRoutes)
 router.use('/pacientes', pacienteRoutes)
 router.use('/profesionales', profesionalRoutes)
 router.use('/roles', rolRoutes)
