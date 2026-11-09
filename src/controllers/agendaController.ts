@@ -7,21 +7,11 @@ import type {
     OpcionesActualizarAgenda,
     OpcionesDesactivarAgenda,
 } from '../services/agendaService.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
+import { HORA_REGEX_HHMM } from '../utils/horarios.js'
 import { validarId } from '../utils/validarId.js'
-
-const DIAS_SEMANA = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-] as const
-
-const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
 function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
     return (
@@ -56,9 +46,9 @@ function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
 
     if (
         typeof horaInicio !== 'string' ||
-        !HORA_REGEX.test(horaInicio) ||
+        !HORA_REGEX_HHMM.test(horaInicio) ||
         typeof horaFin !== 'string' ||
-        !HORA_REGEX.test(horaFin)
+        !HORA_REGEX_HHMM.test(horaFin)
     ) {
         throw new AppError(400, 'Las horas deben tener un formato válido HH:mm')
     }
@@ -110,7 +100,7 @@ function validarDatosActualizarAgenda(body: Request['body']): {
     if (cuerpo.horaInicio !== undefined) {
         if (
             typeof cuerpo.horaInicio !== 'string' ||
-            !HORA_REGEX.test(cuerpo.horaInicio)
+            !HORA_REGEX_HHMM.test(cuerpo.horaInicio)
         ) {
             throw new AppError(
                 400,
@@ -124,7 +114,7 @@ function validarDatosActualizarAgenda(body: Request['body']): {
     if (cuerpo.horaFin !== undefined) {
         if (
             typeof cuerpo.horaFin !== 'string' ||
-            !HORA_REGEX.test(cuerpo.horaFin)
+            !HORA_REGEX_HHMM.test(cuerpo.horaFin)
         ) {
             throw new AppError(
                 400,

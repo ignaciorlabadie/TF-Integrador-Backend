@@ -5,6 +5,7 @@ import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
+import { diaSemanaDeFecha, horaAMinutos, normalizarHora } from '../utils/horarios.js'
 import { esFechaValida } from '../utils/validacion.js'
 
 export interface ListarAsignacionesEspacioFiltros {
@@ -32,18 +33,6 @@ interface DatosAsignacionValidados {
     horaInicio: string
     horaFin: string
 }
-
-const DIAS_POR_INDICE: readonly DiaSemana[] = [
-    'DOMINGO',
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-]
-
-const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
 
 const MENSAJES_ASIGNACION = {
     DATOS_INVALIDOS: 'Datos de la asignación inválidos',
@@ -87,45 +76,6 @@ function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
         typeof valor === 'string' &&
         (DIAS_SEMANA as readonly string[]).includes(valor)
     )
-}
-
-function horaAMinutos(valor: string): number | null {
-    const coincidencia = HORA_REGEX.exec(valor)
-
-    if (!coincidencia) {
-        return null
-    }
-
-    const horasTexto = coincidencia[1]
-    const minutosTexto = coincidencia[2]
-
-    if (horasTexto === undefined || minutosTexto === undefined) {
-        return null
-    }
-
-    return Number(horasTexto) * 60 + Number(minutosTexto)
-}
-
-function normalizarHora(valor: unknown, nombreCampo: string): string {
-    if (typeof valor !== 'string' || horaAMinutos(valor) === null) {
-        throw new AppError(
-            400,
-            `${MENSAJES_ASIGNACION.HORA_INVALIDA} (${nombreCampo})`,
-        )
-    }
-
-    return valor.slice(0, 5)
-}
-
-function diaSemanaDeFecha(fecha: string): DiaSemana | null {
-    const fechaNormalizada = fecha.slice(0, 10)
-    const fechaParseada = new Date(`${fechaNormalizada}T00:00:00Z`)
-
-    if (Number.isNaN(fechaParseada.getTime())) {
-        return null
-    }
-
-    return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
 }
 
 function diaDeAsignacion(asignacion: AsignacionEspacio): DiaSemana | null {
@@ -234,8 +184,17 @@ function validarDatosCreacion(
         throw new AppError(400, MENSAJES_ASIGNACION.TIPO_INVALIDO)
     }
 
-    const horaInicio = normalizarHora(datos.horaInicio, 'horaInicio')
-    const horaFin = normalizarHora(datos.horaFin, 'horaFin')
+    const horaInicio = normalizarHora(
+        datos.horaInicio,
+        'horaInicio',
+        MENSAJES_ASIGNACION.HORA_INVALIDA,
+    )
+    const horaFin = normalizarHora(
+        datos.horaFin,
+        'horaFin',
+        MENSAJES_ASIGNACION.HORA_INVALIDA,
+    )
+    
     const inicioMinutos = horaAMinutos(horaInicio)
     const finMinutos = horaAMinutos(horaFin)
 
