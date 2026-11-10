@@ -7,6 +7,7 @@ import {
 } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { esFechaValida, esTextoValido } from '../utils/validacion.js'
+import { validarEnteroPositivo } from '../utils/validarId.js'
 import { TIPOS_ESPACIO } from '../types/TipoEspacio.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
 import { UBICACIONES_ESPACIO } from '../types/UbicacionEspacio.js'
@@ -40,17 +41,6 @@ const MENSAJES_ESPACIO = {
     ESPACIO_CON_DEPENDENCIAS:
         'No se puede eliminar el espacio porque tiene asignaciones o tarifas asociadas. Podés desactivarlo en su lugar',
 } as const
-
-function validarIdentificador(valor: unknown, nombreCampo: string): number {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor <= 0) {
-        throw new AppError(
-            400,
-            `El ${nombreCampo} debe ser un número entero positivo`,
-        )
-    }
-
-    return valor
-}
 
 function validarNombre(valor: unknown): string {
     if (!esTextoValido(valor, 1, 100)) {
@@ -163,7 +153,7 @@ export class EspacioService {
     }
 
     async buscarPorId(id: number): Promise<Espacio | null> {
-        return Espacio.findByPk(validarIdentificador(id, 'ID del espacio'))
+        return Espacio.findByPk(validarEnteroPositivo(id, 'ID del espacio'))
     }
 
     async crear(datos: DatosEspacio): Promise<Espacio | null> {
@@ -184,7 +174,7 @@ export class EspacioService {
         id: number,
         datos: DatosActualizarEspacio,
     ): Promise<Espacio | null> {
-        const idValidado = validarIdentificador(id, 'ID del espacio')
+        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
 
         if (!datos || Object.keys(datos).length === 0) {
             throw new AppError(400, MENSAJES_ESPACIO.SIN_DATOS_ACTUALIZAR)
@@ -214,7 +204,7 @@ export class EspacioService {
     }
 
     async desactivar(id: number): Promise<Espacio | null> {
-        const idValidado = validarIdentificador(id, 'ID del espacio')
+        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
         const espacio = await Espacio.findByPk(idValidado)
 
         if (!espacio) {
@@ -233,7 +223,7 @@ export class EspacioService {
     }
 
     async reactivar(id: number): Promise<Espacio | null> {
-        const idValidado = validarIdentificador(id, 'ID del espacio')
+        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
         const espacio = await Espacio.findByPk(idValidado)
 
         if (!espacio) {
@@ -252,7 +242,7 @@ export class EspacioService {
     }
 
     async eliminar(id: number): Promise<void> {
-        const idValidado = validarIdentificador(id, 'ID del espacio')
+        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
         const espacio = await Espacio.findByPk(idValidado)
 
         if (!espacio) {

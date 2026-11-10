@@ -28,7 +28,12 @@ import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
-import { diaSemanaDeFecha, horaAMinutos, normalizarHora } from '../utils/horarios.js'
+import {
+    diaSemanaDeFecha,
+    horaAMinutos,
+    normalizarHora,
+} from '../utils/horarios.js'
+import { validarEnteroPositivo } from '../utils/validarId.js'
 
 export interface ListarAgendasFiltros {
     profesionalId?: number
@@ -116,20 +121,6 @@ function incluirProfesional() {
 }
 
 /**
- * Valida que un identificador sea un entero positivo.
- */
-function validarIdentificador(valor: unknown, nombreCampo: string): number {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor <= 0) {
-        throw new AppError(
-            400,
-            `El ${nombreCampo} debe ser un número entero positivo`,
-        )
-    }
-
-    return valor
-}
-
-/**
  * Verifica que el valor pertenezca al ENUM de días del modelo.
  */
 function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
@@ -169,7 +160,7 @@ function validarHorario(
         'horaFin',
         MENSAJES_AGENDA.HORA_INVALIDA,
     )
-    
+
     const inicioMinutos = horaAMinutos(horaInicioNormalizada)
     const finMinutos = horaAMinutos(horaFinNormalizada)
 
@@ -325,7 +316,7 @@ export class AgendaService {
         const where: { profesionalId?: number; activo?: boolean } = {}
 
         if (filtros.profesionalId !== undefined) {
-            where.profesionalId = validarIdentificador(
+            where.profesionalId = validarEnteroPositivo(
                 filtros.profesionalId,
                 'profesionalId',
             )
@@ -365,7 +356,7 @@ export class AgendaService {
         profesionalId: number,
         filtros: ListarAgendasPorProfesionalFiltros = {},
     ): Promise<Agenda[]> {
-        const id = validarIdentificador(profesionalId, 'profesionalId')
+        const id = validarEnteroPositivo(profesionalId, 'profesionalId')
         const profesional = await Profesional.findByPk(id)
 
         if (!profesional) {
@@ -401,7 +392,7 @@ export class AgendaService {
      * 4. superposición con otra agenda activa del mismo profesional y día.
      */
     async crear(datos: DatosAgenda): Promise<Agenda | null> {
-        const profesionalId = validarIdentificador(
+        const profesionalId = validarEnteroPositivo(
             datos.profesionalId,
             'profesionalId',
         )

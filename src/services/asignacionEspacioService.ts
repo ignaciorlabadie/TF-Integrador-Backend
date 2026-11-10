@@ -5,8 +5,13 @@ import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
-import { diaSemanaDeFecha, horaAMinutos, normalizarHora } from '../utils/horarios.js'
+import {
+    diaSemanaDeFecha,
+    horaAMinutos,
+    normalizarHora,
+} from '../utils/horarios.js'
 import { esFechaValida } from '../utils/validacion.js'
+import { validarEnteroPositivo } from '../utils/validarId.js'
 
 export interface ListarAsignacionesEspacioFiltros {
     espacioId?: number
@@ -52,17 +57,6 @@ const MENSAJES_ASIGNACION = {
         'La asignación se superpone con otra existente para el espacio y/o profesional',
     ASIGNACION_NO_ENCONTRADA: 'Asignación no encontrada',
 } as const
-
-function validarIdentificador(valor: unknown, nombreCampo: string): number {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor <= 0) {
-        throw new AppError(
-            400,
-            `El ${nombreCampo} debe ser un número entero positivo`,
-        )
-    }
-
-    return valor
-}
 
 function esTipoValido(valor: unknown): valor is TipoAsignacionEspacio {
     return (
@@ -174,8 +168,8 @@ function validarDatosCreacion(
         throw new AppError(400, MENSAJES_ASIGNACION.DATOS_INVALIDOS)
     }
 
-    const espacioId = validarIdentificador(datos.espacioId, 'ID del espacio')
-    const profesionalId = validarIdentificador(
+    const espacioId = validarEnteroPositivo(datos.espacioId, 'ID del espacio')
+    const profesionalId = validarEnteroPositivo(
         datos.profesionalId,
         'ID del profesional',
     )
@@ -194,7 +188,7 @@ function validarDatosCreacion(
         'horaFin',
         MENSAJES_ASIGNACION.HORA_INVALIDA,
     )
-    
+
     const inicioMinutos = horaAMinutos(horaInicio)
     const finMinutos = horaAMinutos(horaFin)
 
@@ -260,14 +254,14 @@ export class AsignacionEspacioService {
         const where: Record<string, unknown> = {}
 
         if (filtros.espacioId !== undefined) {
-            where.espacioId = validarIdentificador(
+            where.espacioId = validarEnteroPositivo(
                 filtros.espacioId,
                 'ID del espacio',
             )
         }
 
         if (filtros.profesionalId !== undefined) {
-            where.profesionalId = validarIdentificador(
+            where.profesionalId = validarEnteroPositivo(
                 filtros.profesionalId,
                 'ID del profesional',
             )
@@ -290,7 +284,7 @@ export class AsignacionEspacioService {
 
     async buscarPorId(id: number): Promise<AsignacionEspacio | null> {
         return AsignacionEspacio.findByPk(
-            validarIdentificador(id, 'ID de la asignación'),
+            validarEnteroPositivo(id, 'ID de la asignación'),
             { include: incluirRelaciones() },
         )
     }
@@ -340,7 +334,7 @@ export class AsignacionEspacioService {
         id: number,
         datos: DatosAsignacionEspacio,
     ): Promise<AsignacionEspacio | null> {
-        const idValidado = validarIdentificador(id, 'ID de la asignación')
+        const idValidado = validarEnteroPositivo(id, 'ID de la asignación')
 
         const existente = await AsignacionEspacio.findByPk(idValidado)
 
@@ -393,7 +387,7 @@ export class AsignacionEspacioService {
     }
 
     async eliminar(id: number): Promise<void> {
-        const idValidado = validarIdentificador(id, 'ID de la asignación')
+        const idValidado = validarEnteroPositivo(id, 'ID de la asignación')
 
         const existente = await AsignacionEspacio.findByPk(idValidado)
 
