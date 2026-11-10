@@ -327,3 +327,216 @@ describe('GET /api/roles', () => {
         expect(respuesta.body).toEqual(['PACIENTE', 'PROFESIONAL', 'ADMIN'])
     })
 })
+
+describe('GET /api/usuarios/email/:email', () => {
+    it('debe responder 403 a un paciente', async () => {
+        const respuesta = await request(app)
+            .get('/api/usuarios/email/profesional@test.com')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
+
+        expect(respuesta.status).toBe(403)
+        expect(usuarioModel.findOne).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un email vacío', async () => {
+        const respuesta = await request(app)
+            .get('/api/usuarios/email/%20')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.findOne).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si no existe', async () => {
+        vi.mocked(usuarioModel.findOne).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .get('/api/usuarios/email/inexistente@test.com')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+
+    it('debe devolver el usuario encontrado', async () => {
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
+            id: 1,
+            email: 'profesional@test.com',
+            rol: 'PROFESIONAL',
+            activo: true,
+        } as never)
+
+        const respuesta = await request(app)
+            .get('/api/usuarios/email/profesional@test.com')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body.email).toBe('profesional@test.com')
+    })
+})
+
+describe('GET /api/usuarios/:id (validaciones)', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const respuesta = await request(app)
+            .get('/api/usuarios/abc')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si no existe', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .get('/api/usuarios/999')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+})
+
+describe('PUT /api/usuarios/:id (validaciones)', () => {
+    it('debe rechazar una actualización sin datos', async () => {
+        const respuesta = await request(app)
+            .put('/api/usuarios/1')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
+            .send({})
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un email inválido', async () => {
+        const respuesta = await request(app)
+            .put('/api/usuarios/1')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
+            .send({ email: 'no-es-un-email' })
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si el email pertenece a otro usuario', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValueOnce({
+            id: 1,
+            email: 'paciente@test.com',
+            activo: true,
+            save: vi.fn(),
+        } as never)
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
+            id: 2,
+            email: 'otro@test.com',
+        } as never)
+
+        const respuesta = await request(app)
+            .put('/api/usuarios/1')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
+            .send({ email: 'otro@test.com' })
+
+        expect(respuesta.status).toBe(409)
+    })
+
+    it('debe responder 404 si no existe', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .put('/api/usuarios/999')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({ activo: false })
+
+        expect(respuesta.status).toBe(404)
+    })
+
+    it('debe permitir a un administrador cambiar el estado', async () => {
+        const usuario = {
+            id: 1,
+            email: 'paciente@test.com',
+            activo: true,
+            save: vi.fn(),
+        }
+
+        vi.mocked(usuarioModel.findByPk)
+            .mockResolvedValueOnce(usuario as never)
+            .mockResolvedValueOnce({
+                ...usuario,
+                activo: false,
+            } as never)
+
+        const respuesta = await request(app)
+            .put('/api/usuarios/1')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+            .send({ activo: false })
+
+        expect(respuesta.status).toBe(200)
+        expect(usuario.save).toHaveBeenCalled()
+        expect(respuesta.body.activo).toBe(false)
+    })
+})
+
+describe('PATCH /api/usuarios/:id/desactivar (validaciones)', () => {
+    it('debe responder 403 a un no administrador', async () => {
+        const respuesta = await request(app)
+            .patch('/api/usuarios/1/desactivar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+
+        expect(respuesta.status).toBe(403)
+    })
+
+    it('debe responder 404 si no existe', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .patch('/api/usuarios/999/desactivar')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+
+    it('debe responder 409 si ya está desactivado', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue({
+            id: 1,
+            activo: false,
+            save: vi.fn(),
+        } as never)
+
+        const respuesta = await request(app)
+            .patch('/api/usuarios/1/desactivar')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(409)
+    })
+})
+
+describe('PATCH /api/usuarios/:id/reactivar (validaciones)', () => {
+    it('debe responder 403 a un no administrador', async () => {
+        const respuesta = await request(app)
+            .patch('/api/usuarios/1/reactivar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+
+        expect(respuesta.status).toBe(403)
+    })
+
+    it('debe responder 404 si no existe', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .patch('/api/usuarios/999/reactivar')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+
+    it('debe responder 409 si ya está activo', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue({
+            id: 1,
+            activo: true,
+            save: vi.fn(),
+        } as never)
+
+        const respuesta = await request(app)
+            .patch('/api/usuarios/1/reactivar')
+            .set('Authorization', `Bearer ${tokenPara(99, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(409)
+    })
+})

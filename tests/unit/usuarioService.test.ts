@@ -404,4 +404,106 @@ describe('usuarioService', () => {
 
         expect(usuario.save).not.toHaveBeenCalled()
     })
+
+    it('debe propagar un error inesperado al crear la cuenta', async () => {
+        const error = new Error('Error inesperado')
+
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockRejectedValue(error)
+
+        await expect(
+            usuarioService.crearCuenta({
+                email: 'usuario@example.com',
+                password: 'Password123',
+                rol: 'PROFESIONAL',
+            }),
+        ).rejects.toBe(error)
+    })
+
+    it('debe actualizar el email normalizado', async () => {
+        const usuario = {
+            id: 1,
+            email: 'viejo@example.com',
+            activo: true,
+            save: vi.fn(),
+        }
+
+        vi.mocked(Usuario.findByPk)
+            .mockResolvedValueOnce(usuario as never)
+            .mockResolvedValueOnce(usuario as never)
+        vi.mocked(Usuario.findOne).mockResolvedValue({ id: 1 } as never)
+
+        await usuarioService.actualizar(1, { email: ' Nuevo@Example.com ' })
+
+        expect(Usuario.findOne).toHaveBeenCalledWith({
+            where: { email: 'nuevo@example.com' },
+        })
+        expect(usuario.email).toBe('nuevo@example.com')
+        expect(usuario.save).toHaveBeenCalled()
+    })
+
+    it('debe devolver 409 si la base rechaza el email al actualizar', async () => {
+        const usuario = {
+            id: 1,
+            email: 'viejo@example.com',
+            activo: true,
+            save: vi.fn().mockRejectedValue(new UniqueConstraintError({})),
+        }
+
+        vi.mocked(Usuario.findByPk).mockResolvedValueOnce(usuario as never)
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+
+        await expect(
+            usuarioService.actualizar(1, { email: 'nuevo@example.com' }),
+        ).rejects.toMatchObject({
+            statusCode: 409,
+            message: 'El email ya está registrado',
+        })
+    })
+
+    it('debe propagar un error inesperado al guardar la actualización', async () => {
+        const error = new Error('Error inesperado')
+        const usuario = {
+            id: 1,
+            email: 'viejo@example.com',
+            activo: true,
+            save: vi.fn().mockRejectedValue(error),
+        }
+
+        vi.mocked(Usuario.findByPk).mockResolvedValueOnce(usuario as never)
+
+        await expect(
+            usuarioService.actualizar(1, { activo: false }),
+        ).rejects.toBe(error)
+    })
+
+    it('debe crear un usuario desactivado cuando se solicita', async () => {
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockResolvedValue({
+            id: 1,
+            email: 'usuario@example.com',
+            rol: 'PROFESIONAL',
+            activo: false,
+        } as never)
+
+        const resultado = await usuarioService.crear({
+            email: 'usuario@example.com',
+            password: 'Password123',
+            rol: 'PROFESIONAL',
+            activo: false,
+        })
+
+        expect(Usuario.create).toHaveBeenCalledWith(
+            {
+                email: 'usuario@example.com',
+                password: 'hash',
+                rol: 'PROFESIONAL',
+                activo: false,
+            },
+            {},
+        )
+        expect(resultado.activo).toBe(false)
+    })
 })

@@ -544,4 +544,37 @@ describe('usuarioController', () => {
             expect.objectContaining({ statusCode: 409 }),
         )
     })
+
+    it('debe rechazar una búsqueda por email vacío', async () => {
+        const { req, res, next } = crearMocks({}, { email: '   ' })
+
+        await usuarioController.buscarPorEmail(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({
+                statusCode: 400,
+                message: 'El email es obligatorio',
+            }),
+        )
+        expect(usuarioService.buscarPorEmail).not.toHaveBeenCalled()
+    })
+
+    it.each([
+        ['email', { email: 'no-es-un-email' }],
+        ['password corta', { password: 'corta' }],
+        ['password larga', { password: 'a'.repeat(73) }],
+        ['activo no booleano', { activo: 'sí' }],
+    ])(
+        'debe rechazar una actualización con %s inválido',
+        async (_caso, body) => {
+            const { req, res, next } = crearMocks(body, { id: '1' })
+
+            await usuarioController.actualizar(req, res, next)
+
+            expect(next).toHaveBeenCalledWith(
+                expect.objectContaining({ statusCode: 400 }),
+            )
+            expect(usuarioService.actualizar).not.toHaveBeenCalled()
+        },
+    )
 })
