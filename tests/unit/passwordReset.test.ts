@@ -43,6 +43,7 @@ function usuarioActivo(extra: Record<string, unknown> = {}) {
 
 beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(enviarEmailRecuperacion).mockResolvedValue(undefined)
     vi.stubEnv('FRONTEND_URL', 'https://turnos.example.com/')
     vi.stubEnv('RESET_TOKEN_TTL_MINUTES', '30')
 })
@@ -118,6 +119,49 @@ describe('solicitarRecuperacion', () => {
         expect(consoleError).toHaveBeenCalled()
 
         consoleError.mockRestore()
+    })
+
+    it.each(['abc', '0', '-5'])(
+        'debe usar 30 minutos por defecto si el TTL es %s',
+        async (ttl) => {
+            vi.stubEnv('RESET_TOKEN_TTL_MINUTES', ttl)
+            vi.useFakeTimers()
+            vi.setSystemTime(new Date('2026-01-01T00:00:00Z'))
+
+            try {
+                const usuario = usuarioActivo()
+                vi.mocked(Usuario.findOne).mockResolvedValue(usuario as never)
+
+                await solicitarRecuperacion('usuario@example.com')
+
+                expect(
+                    (usuario.resetPasswordExpiresAt as Date).toISOString(),
+                ).toBe('2026-01-01T00:30:00.000Z')
+            } finally {
+                vi.useRealTimers()
+            }
+        },
+    )
+
+    it('debe guardar el token aunque falte FRONTEND_URL', async () => {
+        vi.stubEnv('FRONTEND_URL', '')
+        const usuario = usuarioActivo()
+        vi.mocked(Usuario.findOne).mockResolvedValue(usuario as never)
+        const consoleError = vi
+            .spyOn(console, 'error')
+            .mockImplementation(() => undefined)
+
+        try {
+            await expect(
+                solicitarRecuperacion('usuario@example.com'),
+            ).resolves.toBeUndefined()
+
+            expect(usuario.save).toHaveBeenCalled()
+            expect(enviarEmailRecuperacion).not.toHaveBeenCalled()
+            expect(consoleError).toHaveBeenCalled()
+        } finally {
+            consoleError.mockRestore()
+        }
     })
 })
 

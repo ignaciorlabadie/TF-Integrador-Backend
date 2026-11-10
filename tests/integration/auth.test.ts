@@ -239,4 +239,105 @@ describe('POST /api/auth/reset-password', () => {
         expect(respuesta.status).toBe(400)
         expect(usuarioModel.findOne).not.toHaveBeenCalled()
     })
+
+    it('debe rechazar un token expirado', async () => {
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
+            id: 1,
+            email: 'usuario@example.com',
+            password: 'hash-viejo',
+            rol: 'PACIENTE',
+            activo: true,
+            resetPasswordTokenHash: hashearToken('token-expirado'),
+            resetPasswordExpiresAt: new Date(Date.now() - 60_000),
+            save: vi.fn(),
+        } as never)
+
+        const respuesta = await request(app)
+            .post('/api/auth/reset-password')
+            .send({ token: 'token-expirado', password: 'NuevaPassword123' })
+
+        expect(respuesta.status).toBe(400)
+    })
+})
+
+describe('POST /api/auth/login (usuario desactivado)', () => {
+    it('debe responder 403 si la cuenta está desactivada', async () => {
+        vi.mocked(usuarioModel.findOne).mockResolvedValue({
+            id: 1,
+            email: 'usuario@example.com',
+            password: 'hash',
+            rol: 'PACIENTE',
+            activo: false,
+        } as never)
+
+        const respuesta = await request(app).post('/api/auth/login').send({
+            email: 'usuario@example.com',
+            password: '12345678',
+        })
+
+        expect(respuesta.status).toBe(403)
+        expect(respuesta.body).not.toHaveProperty('token')
+    })
+})
+
+describe('GET /api/auth/me (validaciones)', () => {
+    it('debe responder 401 con un token inválido', async () => {
+        const respuesta = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', 'Bearer token-invalido')
+
+        expect(respuesta.status).toBe(401)
+    })
+
+    it('debe responder 404 si la cuenta ya no existe', async () => {
+        vi.mocked(usuarioModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .get('/api/auth/me')
+            .set('Authorization', `Bearer ${tokenPara(999, 'PACIENTE')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+})
+
+describe('POST /api/auth/forgot-password (validaciones)', () => {
+    it('debe rechazar un email faltante', async () => {
+        const respuesta = await request(app)
+            .post('/api/auth/forgot-password')
+            .send({})
+
+        expect(respuesta.status).toBe(400)
+        expect(usuarioModel.findOne).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 200 aunque falte FRONTEND_URL', async () => {
+        vi.stubEnv('FRONTEND_URL', '')
+        const usuario = {
+            id: 1,
+            email: 'usuario@example.com',
+            password: 'hash',
+            rol: 'PACIENTE',
+            activo: true,
+            resetPasswordTokenHash: null,
+            resetPasswordExpiresAt: null,
+            save: vi.fn().mockResolvedValue(undefined),
+        }
+        vi.mocked(usuarioModel.findOne).mockResolvedValue(usuario as never)
+        const consoleError = vi
+            .spyOn(console, 'error')
+            .mockImplementation(() => undefined)
+
+        try {
+            const respuesta = await request(app)
+                .post('/api/auth/forgot-password')
+                .send({ email: 'usuario@example.com' })
+
+            expect(respuesta.status).toBe(200)
+            expect(usuario.save).toHaveBeenCalled()
+            expect(enviarEmailRecuperacion).not.toHaveBeenCalled()
+            expect(consoleError).toHaveBeenCalled()
+        } finally {
+            consoleError.mockRestore()
+        }
+    })
 })
