@@ -14,7 +14,6 @@ import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
 import { esTextoValido } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
 
-
 function esTipoEspacioValido(valor: unknown): valor is TipoEspacio {
     return (
         typeof valor === 'string' &&
