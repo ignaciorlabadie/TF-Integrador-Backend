@@ -70,7 +70,7 @@ export class TurnoService {
                     hora: datos.hora,
                     motivo: datos.motivo,
                     observaciones: datos.observaciones ?? null,
-                    estado: 'PENDIENTE',
+                    estado: 'CONFIRMADO',
                 },
                 { transaction },
             )
