@@ -171,4 +171,27 @@ describe('authService', () => {
             { expiresIn: '2h' },
         )
     })
+
+    it('debe usar 1d cuando JWT_EXPIRES_IN no está configurado', async () => {
+        vi.stubEnv('JWT_EXPIRES_IN', '')
+
+        vi.mocked(Usuario.findOne).mockResolvedValue({
+            id: 1,
+            email: 'usuario@example.com',
+            password: 'hash',
+            rol: 'PACIENTE',
+            activo: true,
+        } as never)
+
+        vi.mocked(bcrypt.compare).mockResolvedValue(true as never)
+        vi.mocked(jwt.sign).mockReturnValue('token-de-prueba' as never)
+
+        await iniciarSesion('usuario@example.com', '123456')
+
+        expect(jwt.sign).toHaveBeenCalledWith(
+            { id: 1, email: 'usuario@example.com', rol: 'PACIENTE' },
+            'secreto-de-prueba',
+            { expiresIn: '1d' },
+        )
+    })
 })

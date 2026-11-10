@@ -124,6 +124,32 @@ describe('verificarToken', () => {
         expect(next).not.toHaveBeenCalled()
     })
 
+    it('debe lanzar 401 si el token está vacío', () => {
+        const { req, res, next } = crearMocks('Bearer ')
+
+        const error = capturarError(() => verificarToken(req, res, next))
+
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token de autenticación inválido',
+        })
+        expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe lanzar 401 si el esquema no es Bearer', () => {
+        const { req, res, next } = crearMocks('Basic token')
+
+        const error = capturarError(() => verificarToken(req, res, next))
+
+        expect(error).toBeInstanceOf(AppError)
+        expect(error).toMatchObject({
+            statusCode: 401,
+            message: 'Token de autorización requerido',
+        })
+        expect(next).not.toHaveBeenCalled()
+    })
+
     it('debe validar el token y agregar el usuario a la request', () => {
         const token = jwt.sign(
             { id: 1, email: 'paciente@test.com', rol: 'PACIENTE' },
