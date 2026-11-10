@@ -188,6 +188,16 @@ TF-Integrador-Backend/
 
 ## Documentación
 
+La documentación interactiva de la API (Swagger UI) está disponible en:
+
+| Ambiente            | Swagger UI                                            | Contrato OpenAPI                                                   |
+| ------------------- | ----------------------------------------------------- | ------------------------------------------------------------------ |
+| Local               | `http://localhost:3000/api-docs`                      | `http://localhost:3000/api-docs/openapi.json`                      |
+| Producción (Render) | `https://tf-integrador-backend.onrender.com/api-docs` | `https://tf-integrador-backend.onrender.com/api-docs/openapi.json` |
+
+La especificación OpenAPI se genera con `swagger-jsdoc` a partir de las
+anotaciones `@openapi` en `src/routes/`.
+
 La documentación detallada de la API está en [`docs/`](./docs/README.md):
 
 - [Autenticación](./docs/auth.md): login, perfil y recuperación de contraseña.

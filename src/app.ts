@@ -1,7 +1,9 @@
 import 'dotenv/config'
 import cors from 'cors'
 import express from 'express'
+import swaggerUi from 'swagger-ui-express'
 import sequelize from './config/database.js'
+import { openapiSpec } from './config/swagger.js'
 import routes from './routes/index.js'
 import { errorHandler } from './middlewares/errorHandler.js'
 
@@ -9,6 +11,19 @@ const app = express()
 
 app.use(cors())
 app.use(express.json())
+
+app.get('/api-docs/openapi.json', (_req, res) => {
+    res.json(openapiSpec)
+})
+
+app.use(
+    '/api-docs',
+    swaggerUi.serve,
+    swaggerUi.setup(openapiSpec, {
+        customSiteTitle: 'API Sistema de Turnos',
+    }),
+)
+
 app.use('/api', routes)
 app.use(errorHandler)
 
