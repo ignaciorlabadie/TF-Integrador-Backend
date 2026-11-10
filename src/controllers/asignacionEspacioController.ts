@@ -6,29 +6,15 @@ import type {
     ListarAsignacionesEspacioFiltros,
 } from '../services/asignacionEspacioService.js'
 import { AppError } from '../errors/AppError.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
+import { HORA_REGEX_HHMM } from '../utils/horarios.js'
 import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { profesionalService } from '../services/profesionalService.js'
-
-const TIPOS_ASIGNACION: readonly TipoAsignacionEspacio[] = [
-    'FIJA',
-    'ESPECIFICA',
-]
-
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
-
-const HORA_REGEX = /^([01]\d|2[0-3]):[0-5]\d$/
 
 function esTipoValido(valor: unknown): valor is TipoAsignacionEspacio {
     return (
@@ -45,7 +31,7 @@ function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
 }
 
 function esHoraValida(valor: unknown): valor is string {
-    return typeof valor === 'string' && HORA_REGEX.test(valor)
+    return typeof valor === 'string' && HORA_REGEX_HHMM.test(valor)
 }
 
 function validarDatosAsignacion(body: Request['body']): DatosAsignacionEspacio {

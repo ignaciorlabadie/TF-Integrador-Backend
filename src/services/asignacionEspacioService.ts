@@ -1,9 +1,17 @@
 import { Op, type WhereOptions } from 'sequelize'
 import { AsignacionEspacio, Espacio, Profesional } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
 import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
+import {
+    diaSemanaDeFecha,
+    horaAMinutos,
+    normalizarHora,
+} from '../utils/horarios.js'
 import { esFechaValida } from '../utils/validacion.js'
+import { validarEnteroPositivo } from '../utils/validarId.js'
 
 export interface ListarAsignacionesEspacioFiltros {
     espacioId?: number
@@ -31,33 +39,6 @@ interface DatosAsignacionValidados {
     horaFin: string
 }
 
-const TIPOS_ASIGNACION: readonly TipoAsignacionEspacio[] = [
-    'FIJA',
-    'ESPECIFICA',
-]
-
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
-
-const DIAS_POR_INDICE: readonly DiaSemana[] = [
-    'DOMINGO',
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-]
-
-const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
-
 const MENSAJES_ASIGNACION = {
     DATOS_INVALIDOS: 'Datos de la asignación inválidos',
     TIPO_INVALIDO: 'El tipo de asignación no es válido',
@@ -77,17 +58,6 @@ const MENSAJES_ASIGNACION = {
     ASIGNACION_NO_ENCONTRADA: 'Asignación no encontrada',
 } as const
 
-function validarIdentificador(valor: unknown, nombreCampo: string): number {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor <= 0) {
-        throw new AppError(
-            400,
-            `El ${nombreCampo} debe ser un número entero positivo`,
-        )
-    }
-
-    return valor
-}
-
 function esTipoValido(valor: unknown): valor is TipoAsignacionEspacio {
     return (
         typeof valor === 'string' &&
@@ -100,45 +70,6 @@ function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
         typeof valor === 'string' &&
         (DIAS_SEMANA as readonly string[]).includes(valor)
     )
-}
-
-function horaAMinutos(valor: string): number | null {
-    const coincidencia = HORA_REGEX.exec(valor)
-
-    if (!coincidencia) {
-        return null
-    }
-
-    const horasTexto = coincidencia[1]
-    const minutosTexto = coincidencia[2]
-
-    if (horasTexto === undefined || minutosTexto === undefined) {
-        return null
-    }
-
-    return Number(horasTexto) * 60 + Number(minutosTexto)
-}
-
-function normalizarHora(valor: unknown, nombreCampo: string): string {
-    if (typeof valor !== 'string' || horaAMinutos(valor) === null) {
-        throw new AppError(
-            400,
-            `${MENSAJES_ASIGNACION.HORA_INVALIDA} (${nombreCampo})`,
-        )
-    }
-
-    return valor.slice(0, 5)
-}
-
-function diaSemanaDeFecha(fecha: string): DiaSemana | null {
-    const fechaNormalizada = fecha.slice(0, 10)
-    const fechaParseada = new Date(`${fechaNormalizada}T00:00:00Z`)
-
-    if (Number.isNaN(fechaParseada.getTime())) {
-        return null
-    }
-
-    return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
 }
 
 function diaDeAsignacion(asignacion: AsignacionEspacio): DiaSemana | null {
@@ -237,8 +168,8 @@ function validarDatosCreacion(
         throw new AppError(400, MENSAJES_ASIGNACION.DATOS_INVALIDOS)
     }
 
-    const espacioId = validarIdentificador(datos.espacioId, 'ID del espacio')
-    const profesionalId = validarIdentificador(
+    const espacioId = validarEnteroPositivo(datos.espacioId, 'ID del espacio')
+    const profesionalId = validarEnteroPositivo(
         datos.profesionalId,
         'ID del profesional',
     )
@@ -247,8 +178,17 @@ function validarDatosCreacion(
         throw new AppError(400, MENSAJES_ASIGNACION.TIPO_INVALIDO)
     }
 
-    const horaInicio = normalizarHora(datos.horaInicio, 'horaInicio')
-    const horaFin = normalizarHora(datos.horaFin, 'horaFin')
+    const horaInicio = normalizarHora(
+        datos.horaInicio,
+        'horaInicio',
+        MENSAJES_ASIGNACION.HORA_INVALIDA,
+    )
+    const horaFin = normalizarHora(
+        datos.horaFin,
+        'horaFin',
+        MENSAJES_ASIGNACION.HORA_INVALIDA,
+    )
+
     const inicioMinutos = horaAMinutos(horaInicio)
     const finMinutos = horaAMinutos(horaFin)
 
@@ -314,14 +254,14 @@ export class AsignacionEspacioService {
         const where: Record<string, unknown> = {}
 
         if (filtros.espacioId !== undefined) {
-            where.espacioId = validarIdentificador(
+            where.espacioId = validarEnteroPositivo(
                 filtros.espacioId,
                 'ID del espacio',
             )
         }
 
         if (filtros.profesionalId !== undefined) {
-            where.profesionalId = validarIdentificador(
+            where.profesionalId = validarEnteroPositivo(
                 filtros.profesionalId,
                 'ID del profesional',
             )
@@ -344,7 +284,7 @@ export class AsignacionEspacioService {
 
     async buscarPorId(id: number): Promise<AsignacionEspacio | null> {
         return AsignacionEspacio.findByPk(
-            validarIdentificador(id, 'ID de la asignación'),
+            validarEnteroPositivo(id, 'ID de la asignación'),
             { include: incluirRelaciones() },
         )
     }
@@ -394,7 +334,7 @@ export class AsignacionEspacioService {
         id: number,
         datos: DatosAsignacionEspacio,
     ): Promise<AsignacionEspacio | null> {
-        const idValidado = validarIdentificador(id, 'ID de la asignación')
+        const idValidado = validarEnteroPositivo(id, 'ID de la asignación')
 
         const existente = await AsignacionEspacio.findByPk(idValidado)
 
@@ -447,7 +387,7 @@ export class AsignacionEspacioService {
     }
 
     async eliminar(id: number): Promise<void> {
-        const idValidado = validarIdentificador(id, 'ID de la asignación')
+        const idValidado = validarEnteroPositivo(id, 'ID de la asignación')
 
         const existente = await AsignacionEspacio.findByPk(idValidado)
 

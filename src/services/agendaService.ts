@@ -26,7 +26,14 @@ import { Op } from 'sequelize'
 import { Agenda, Profesional, Turno } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
+import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import {
+    diaSemanaDeFecha,
+    horaAMinutos,
+    normalizarHora,
+} from '../utils/horarios.js'
+import { validarEnteroPositivo } from '../utils/validarId.js'
 
 export interface ListarAgendasFiltros {
     profesionalId?: number
@@ -101,32 +108,6 @@ const MENSAJES_AGENDA = {
         'No se puede desactivar la agenda porque tiene turnos futuros registrados',
 } as const
 
-const DIAS_SEMANA: readonly DiaSemana[] = [
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-    'DOMINGO',
-]
-
-// getUTCDay() devuelve 0=domingo ... 6=sábado.
-// Este array traduce ese índice al ENUM usado por el modelo Agenda.
-const DIAS_POR_INDICE: readonly DiaSemana[] = [
-    'DOMINGO',
-    'LUNES',
-    'MARTES',
-    'MIERCOLES',
-    'JUEVES',
-    'VIERNES',
-    'SABADO',
-]
-
-// Acepta HH:mm y HH:mm:ss. Los segundos se descartan al normalizar
-// porque PostgreSQL los agrega al leer columnas DataTypes.TIME.
-const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
-
 /**
  * Incluye únicamente información pública del profesional.
  * Nunca se incluye Usuario para evitar exponer datos sensibles.
@@ -140,20 +121,6 @@ function incluirProfesional() {
 }
 
 /**
- * Valida que un identificador sea un entero positivo.
- */
-function validarIdentificador(valor: unknown, nombreCampo: string): number {
-    if (typeof valor !== 'number' || !Number.isInteger(valor) || valor <= 0) {
-        throw new AppError(
-            400,
-            `El ${nombreCampo} debe ser un número entero positivo`,
-        )
-    }
-
-    return valor
-}
-
-/**
  * Verifica que el valor pertenezca al ENUM de días del modelo.
  */
 function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
@@ -161,43 +128,6 @@ function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
         typeof valor === 'string' &&
         (DIAS_SEMANA as readonly string[]).includes(valor)
     )
-}
-
-/**
- * Convierte una hora HH:mm o HH:mm:ss a minutos desde las 00:00.
- * Devuelve null si el formato no es válido.
- */
-function horaAMinutos(valor: unknown): number | null {
-    if (typeof valor !== 'string') {
-        return null
-    }
-
-    const coincidencia = HORA_REGEX.exec(valor)
-
-    if (!coincidencia) {
-        return null
-    }
-
-    const horasTexto = coincidencia[1]
-    const minutosTexto = coincidencia[2]
-
-    if (horasTexto === undefined || minutosTexto === undefined) {
-        return null
-    }
-
-    return Number(horasTexto) * 60 + Number(minutosTexto)
-}
-
-// Valida el formato de una hora y la devuelve siempre como HH:mm.
-function normalizarHora(valor: unknown, nombreCampo: string): string {
-    if (typeof valor !== 'string' || horaAMinutos(valor) === null) {
-        throw new AppError(
-            400,
-            `${MENSAJES_AGENDA.HORA_INVALIDA} (${nombreCampo})`,
-        )
-    }
-
-    return valor.slice(0, 5)
 }
 
 /**
@@ -220,8 +150,17 @@ function validarHorario(
         throw new AppError(400, MENSAJES_AGENDA.DIA_SEMANA_INVALIDO)
     }
 
-    const horaInicioNormalizada = normalizarHora(horaInicio, 'horaInicio')
-    const horaFinNormalizada = normalizarHora(horaFin, 'horaFin')
+    const horaInicioNormalizada = normalizarHora(
+        horaInicio,
+        'horaInicio',
+        MENSAJES_AGENDA.HORA_INVALIDA,
+    )
+    const horaFinNormalizada = normalizarHora(
+        horaFin,
+        'horaFin',
+        MENSAJES_AGENDA.HORA_INVALIDA,
+    )
+
     const inicioMinutos = horaAMinutos(horaInicioNormalizada)
     const finMinutos = horaAMinutos(horaFinNormalizada)
 
@@ -255,18 +194,6 @@ function validarHorario(
         inicioMinutos,
         finMinutos,
     }
-}
-
-//Obtiene el día de la semana de una fecha YYYY-MM-DD.
-function diaSemanaDeFecha(fecha: string): DiaSemana | null {
-    const fechaNormalizada = fecha.slice(0, 10)
-    const fechaParseada = new Date(`${fechaNormalizada}T00:00:00Z`)
-
-    if (Number.isNaN(fechaParseada.getTime())) {
-        return null
-    }
-
-    return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
 }
 
 /**
@@ -389,7 +316,7 @@ export class AgendaService {
         const where: { profesionalId?: number; activo?: boolean } = {}
 
         if (filtros.profesionalId !== undefined) {
-            where.profesionalId = validarIdentificador(
+            where.profesionalId = validarEnteroPositivo(
                 filtros.profesionalId,
                 'profesionalId',
             )
@@ -429,7 +356,7 @@ export class AgendaService {
         profesionalId: number,
         filtros: ListarAgendasPorProfesionalFiltros = {},
     ): Promise<Agenda[]> {
-        const id = validarIdentificador(profesionalId, 'profesionalId')
+        const id = validarEnteroPositivo(profesionalId, 'profesionalId')
         const profesional = await Profesional.findByPk(id)
 
         if (!profesional) {
@@ -465,7 +392,7 @@ export class AgendaService {
      * 4. superposición con otra agenda activa del mismo profesional y día.
      */
     async crear(datos: DatosAgenda): Promise<Agenda | null> {
-        const profesionalId = validarIdentificador(
+        const profesionalId = validarEnteroPositivo(
             datos.profesionalId,
             'profesionalId',
         )

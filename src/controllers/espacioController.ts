@@ -7,13 +7,12 @@ import type {
     ListarEspaciosFiltros,
 } from '../services/espacioService.js'
 import { AppError } from '../errors/AppError.js'
+import { TIPOS_ESPACIO } from '../types/TipoEspacio.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
+import { UBICACIONES_ESPACIO } from '../types/UbicacionEspacio.js'
 import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
 import { esTextoValido } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
-
-const TIPOS_ESPACIO: readonly TipoEspacio[] = ['GIMNASIO', 'CONSULTORIO']
-const UBICACIONES_ESPACIO: readonly UbicacionEspacio[] = ['ADELANTE', 'ATRAS']
 
 function esTipoEspacioValido(valor: unknown): valor is TipoEspacio {
     return (
