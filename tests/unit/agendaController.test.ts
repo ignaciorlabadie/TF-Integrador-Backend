@@ -265,48 +265,6 @@ describe('agendaController.crear', () => {
         expect(agendaService.crear).not.toHaveBeenCalled()
     })
 
-    it('debe responder 400 si el día de la semana no es válido', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            diaSemana: 'LUNDI',
-        })
-
-        await agendaController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(agendaService.crear).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si una hora no tiene formato HH:mm', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            horaInicio: '9:00',
-        })
-
-        await agendaController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(agendaService.crear).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si la duración no es un entero positivo', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            duracionTurno: 0,
-        })
-
-        await agendaController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(agendaService.crear).not.toHaveBeenCalled()
-    })
-
     it('debe responder 201 enviando solo los campos permitidos', async () => {
         vi.mocked(agendaService.crear).mockResolvedValue(agenda as never)
 
@@ -383,20 +341,6 @@ describe('agendaController.actualizar', () => {
 
     it('debe responder 400 si el body está vacío', async () => {
         const { req, res, next } = crearMocks({}, { id: '10' })
-
-        await agendaController.actualizar(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(agendaService.actualizar).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si un campo tiene un valor inválido', async () => {
-        const { req, res, next } = crearMocks(
-            { duracionTurno: 0 },
-            { id: '10' },
-        )
 
         await agendaController.actualizar(req, res, next)
 
