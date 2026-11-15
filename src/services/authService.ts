@@ -6,6 +6,7 @@ import { MENSAJES } from '../errors/mensajes.js'
 import { enviarEmailRecuperacion } from './emailService.js'
 import { hashPassword, verificarPassword } from '../utils/passwords.js'
 import { generarTokenReseteo, hashearToken } from '../utils/tokens.js'
+import { obtenerUrlFrontend } from '../utils/frontendUrl.js'
 import {
     PASSWORD_MAXIMO,
     PASSWORD_MINIMO,
@@ -73,16 +74,6 @@ function obtenerTtlRecuperacionMinutos(): number {
     }
 
     return configurado
-}
-
-function obtenerUrlFrontend(): string {
-    const url = process.env.FRONTEND_URL?.trim()
-
-    if (!url) {
-        throw new AppError(500, 'FRONTEND_URL no está configurado')
-    }
-
-    return url.replace(/\/+$/, '')
 }
 
 export async function solicitarRecuperacion(email: string): Promise<void> {

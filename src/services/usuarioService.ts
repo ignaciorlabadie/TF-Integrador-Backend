@@ -9,6 +9,7 @@ import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { hashPassword } from '../utils/passwords.js'
 import { normalizarEmail } from '../utils/validacion.js'
+import { enviarEmailBienvenida } from './emailService.js'
 
 const atributosUsuario = {
     attributes: ATRIBUTOS_USUARIO_PUBLICOS,
@@ -91,6 +92,12 @@ export class UsuarioService {
             rol: datos.rol,
             ...(datos.activo !== undefined ? { activo: datos.activo } : {}),
         })
+
+        if (usuario.activo) {
+            enviarEmailBienvenida(usuario.email).catch((error) => {
+                console.error('No se pudo enviar el email de bienvenida', error)
+            })
+        }
 
         return {
             id: usuario.id,

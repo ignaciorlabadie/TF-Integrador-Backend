@@ -1,11 +1,21 @@
 import { AppError } from '../errors/AppError.js'
+import { obtenerUrlFrontend } from '../utils/frontendUrl.js'
 
 const BREVO_URL = 'https://api.brevo.com/v3/smtp/email'
 
-export async function enviarEmailRecuperacion(
-    email: string,
-    url: string,
-): Promise<void> {
+type PayloadEmail = {
+    to: string
+    subject: string
+    htmlContent: string
+    textContent: string
+}
+
+async function enviarConBrevo({
+    to,
+    subject,
+    htmlContent,
+    textContent,
+}: PayloadEmail): Promise<void> {
     const apiKey = process.env.BREVO_API_KEY
     const remitente = process.env.EMAIL_FROM
     const nombreRemitente = process.env.EMAIL_FROM_NAME || 'Sistema de Turnos'
@@ -14,6 +24,39 @@ export async function enviarEmailRecuperacion(
         throw new AppError(500, 'La configuración de email no está completa')
     }
 
+    const respuesta = await fetch(BREVO_URL, {
+        method: 'POST',
+        headers: {
+            accept: 'application/json',
+            'api-key': apiKey,
+            'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+            sender: {
+                name: nombreRemitente,
+                email: remitente,
+            },
+            to: [{ email: to }],
+            subject,
+            htmlContent,
+            textContent,
+        }),
+    })
+
+    if (!respuesta.ok) {
+        const detalle = await respuesta.text().catch(() => '')
+        const mensaje = `Brevo respondió ${respuesta.status}${detalle ? `: ${detalle}` : ''}`
+
+        console.error('No se pudo enviar el email:', mensaje)
+
+        throw new AppError(502, mensaje)
+    }
+}
+
+export async function enviarEmailRecuperacion(
+    email: string,
+    url: string,
+): Promise<void> {
     const texto = [
         'Recibimos un pedido para restablecer tu contraseña.',
         '',
@@ -31,28 +74,44 @@ export async function enviarEmailRecuperacion(
         <p>Si no solicitaste este cambio, podés ignorar este mensaje.</p>
     `.trim()
 
-    const respuesta = await fetch(BREVO_URL, {
-        method: 'POST',
-        headers: {
-            accept: 'application/json',
-            'api-key': apiKey,
-            'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-            sender: {
-                name: nombreRemitente,
-                email: remitente,
-            },
-            to: [{ email }],
-            subject: 'Recuperación de contraseña',
-            htmlContent: html,
-            textContent: texto,
-        }),
+    await enviarConBrevo({
+        to: email,
+        subject: 'Recuperación de contraseña',
+        htmlContent: html,
+        textContent: texto,
     })
+}
 
-    if (!respuesta.ok) {
-        throw new AppError(502, 'No se pudo enviar el email de recuperación')
-    }
+export async function enviarEmailBienvenida(
+    email: string,
+    nombre?: string,
+): Promise<void> {
+    const url = `${obtenerUrlFrontend()}/login`
+    const saludo = nombre ? `Hola ${nombre},` : 'Hola,'
+
+    const texto = [
+        saludo,
+        '',
+        'Te damos la bienvenida al Trabajo Final Integrador.',
+        '',
+        'Ya podés ingresar a tu cuenta:',
+        url,
+    ].join('\n')
+
+    const html = `
+        <p>${saludo}</p>
+        <p>Te damos la bienvenida al <strong>Trabajo Final Integrador</strong>.</p>
+        <p>
+            <a href="${url}">Ingresá a tu cuenta</a>
+        </p>
+    `.trim()
+
+    await enviarConBrevo({
+        to: email,
+        subject: 'Bienvenido al Trabajo Final Integrador',
+        htmlContent: html,
+        textContent: texto,
+    })
 }
 
 export async function enviarEmailTurnoCreado(
@@ -62,14 +121,6 @@ export async function enviarEmailTurnoCreado(
     hora: string,
     profesional: string,
 ): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY
-    const remitente = process.env.EMAIL_FROM
-    const nombreRemitente = process.env.EMAIL_FROM_NAME || 'Sistema de Turnos'
-
-    if (!apiKey || !remitente) {
-        throw new AppError(500, 'La configuración de email no está completa')
-    }
-
     const texto = [
         `Hola ${nombre},`,
         '',
@@ -92,28 +143,12 @@ export async function enviarEmailTurnoCreado(
         <p>Gracias por confiar en nuestro sistema.</p>
     `.trim()
 
-    const respuesta = await fetch(BREVO_URL, {
-        method: 'POST',
-        headers: {
-            accept: 'application/json',
-            'api-key': apiKey,
-            'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-            sender: {
-                name: nombreRemitente,
-                email: remitente,
-            },
-            to: [{ email }],
-            subject: 'Turno creado',
-            htmlContent: html,
-            textContent: texto,
-        }),
+    await enviarConBrevo({
+        to: email,
+        subject: 'Turno creado',
+        htmlContent: html,
+        textContent: texto,
     })
-
-    if (!respuesta.ok) {
-        throw new AppError(502, 'No se pudo enviar el email de turno creado')
-    }
 }
 
 export async function enviarEmailTurnoCancelado(
@@ -123,14 +158,6 @@ export async function enviarEmailTurnoCancelado(
     hora: string,
     profesional: string,
 ): Promise<void> {
-    const apiKey = process.env.BREVO_API_KEY
-    const remitente = process.env.EMAIL_FROM
-    const nombreRemitente = process.env.EMAIL_FROM_NAME || 'Sistema de Turnos'
-
-    if (!apiKey || !remitente) {
-        throw new AppError(500, 'La configuración de email no está completa')
-    }
-
     const texto = [
         `Hola ${nombre},`,
         '',
@@ -153,26 +180,10 @@ export async function enviarEmailTurnoCancelado(
         <p>Si tenés dudas, contactanos.</p>
     `.trim()
 
-    const respuesta = await fetch(BREVO_URL, {
-        method: 'POST',
-        headers: {
-            accept: 'application/json',
-            'api-key': apiKey,
-            'content-type': 'application/json',
-        },
-        body: JSON.stringify({
-            sender: {
-                name: nombreRemitente,
-                email: remitente,
-            },
-            to: [{ email }],
-            subject: 'Turno cancelado',
-            htmlContent: html,
-            textContent: texto,
-        }),
+    await enviarConBrevo({
+        to: email,
+        subject: 'Turno cancelado',
+        htmlContent: html,
+        textContent: texto,
     })
-
-    if (!respuesta.ok) {
-        throw new AppError(502, 'No se pudo enviar el email de turno cancelado')
-    }
 }

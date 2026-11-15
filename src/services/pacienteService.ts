@@ -4,6 +4,7 @@ import { Estudio, Paciente, Turno, Usuario } from '../models/index.js'
 import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import sequelize from '../config/database.js'
 import { usuarioService } from './usuarioService.js'
+import { enviarEmailBienvenida } from './emailService.js'
 import type { CrearPaciente } from '../types/CrearPaciente.js'
 import type { ActualizarPaciente } from '../types/ActualizarPaciente.js'
 import { AppError } from '../errors/AppError.js'
@@ -95,6 +96,10 @@ export class PacienteService {
 
                 throw error
             }
+        })
+
+        enviarEmailBienvenida(email, datos.nombre).catch((error) => {
+            console.error('No se pudo enviar el email de bienvenida', error)
         })
 
         return Paciente.findByPk(paciente.id, {
