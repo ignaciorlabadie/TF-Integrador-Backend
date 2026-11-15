@@ -82,6 +82,10 @@ una transacción.
 }
 ```
 
+Al crear la cuenta se envía de forma asíncrona un email de bienvenida al
+`email` indicado, con un enlace a `${FRONTEND_URL}/login`. Si el envío falla, el
+alta igual responde `201` y el error queda registrado en el servidor.
+
 ### Errores
 
 | Código | Mensaje                                                             | Causa                             |
