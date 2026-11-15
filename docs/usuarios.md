@@ -66,6 +66,10 @@ Para pre-crear una cuenta inactiva:
 }
 ```
 
+Si la cuenta se crea activa, se envía de forma asíncrona un email de bienvenida
+a `email` con un enlace a `${FRONTEND_URL}/login`. Un fallo de envío no afecta la
+respuesta `201`.
+
 ### Errores
 
 | Código | Mensaje                                                                            | Causa                        |

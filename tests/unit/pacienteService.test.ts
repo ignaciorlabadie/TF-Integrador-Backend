@@ -26,6 +26,10 @@ vi.mock('bcryptjs', () => ({
     },
 }))
 
+vi.mock('../../src/services/emailService.js', () => ({
+    enviarEmailBienvenida: vi.fn(),
+}))
+
 import bcrypt from 'bcryptjs'
 import {
     estudioModel,
@@ -35,6 +39,7 @@ import {
     usuarioModel,
 } from '../helpers/mocksModelos.js'
 
+import { enviarEmailBienvenida } from '../../src/services/emailService.js'
 import { pacienteService } from '../../src/services/pacienteService.js'
 
 const datos = {
@@ -51,6 +56,7 @@ const datos = {
 beforeEach(() => {
     vi.resetAllMocks()
     vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+    vi.mocked(enviarEmailBienvenida).mockResolvedValue(undefined)
     vi.mocked(transactionMock).mockImplementation(
         async (callback: (transaction: unknown) => unknown) =>
             callback({ id: 'transaccion-mock' }),
@@ -99,6 +105,11 @@ describe('pacienteService.crear', () => {
         )
 
         expect(resultado).toEqual({ id: 3, usuarioId: 10 })
+
+        expect(enviarEmailBienvenida).toHaveBeenCalledWith(
+            'paciente@example.com',
+            'Ana',
+        )
     })
 
     it('debe normalizar el email al crear el paciente', async () => {
@@ -119,6 +130,11 @@ describe('pacienteService.crear', () => {
             where: { email: 'paciente@example.com' },
             transaction: { id: 'transaccion-mock' },
         })
+
+        expect(enviarEmailBienvenida).toHaveBeenCalledWith(
+            'paciente@example.com',
+            'Ana',
+        )
     })
 
     it('debe rechazar un email ya registrado sin crear el perfil', async () => {
@@ -135,6 +151,7 @@ describe('pacienteService.crear', () => {
 
         expect(usuarioModel.create).not.toHaveBeenCalled()
         expect(pacienteModel.create).not.toHaveBeenCalled()
+        expect(enviarEmailBienvenida).not.toHaveBeenCalled()
     })
 
     it('debe rechazar un DNI ya registrado sin crear el usuario', async () => {

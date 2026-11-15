@@ -26,6 +26,13 @@ vi.mock('bcryptjs', () => ({
     },
 }))
 
+vi.mock('../../src/services/emailService.js', () => ({
+    enviarEmailBienvenida: vi.fn(),
+    enviarEmailRecuperacion: vi.fn(),
+    enviarEmailTurnoCreado: vi.fn(),
+    enviarEmailTurnoCancelado: vi.fn(),
+}))
+
 import bcrypt from 'bcryptjs'
 import jwt from 'jsonwebtoken'
 import {
@@ -35,6 +42,7 @@ import {
     turnoModel,
     usuarioModel,
 } from '../helpers/mocksModelos.js'
+import { enviarEmailBienvenida } from '../../src/services/emailService.js'
 import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
@@ -78,6 +86,7 @@ beforeEach(() => {
     vi.resetAllMocks()
     vi.stubEnv('JWT_SECRET', 'secreto-de-prueba')
     vi.mocked(bcrypt.hash).mockResolvedValue('hash-de-prueba' as never)
+    vi.mocked(enviarEmailBienvenida).mockResolvedValue(undefined)
     vi.mocked(transactionMock).mockImplementation(
         async (callback: (transaction: unknown) => unknown) =>
             callback({ id: 'transaccion-mock' }),
@@ -122,6 +131,11 @@ describe('POST /api/pacientes', () => {
         expect(respuesta.status).toBe(201)
         expect(respuesta.body.id).toBe(3)
         expect(respuesta.body.usuario.email).toBe('paciente@test.com')
+
+        expect(enviarEmailBienvenida).toHaveBeenCalledWith(
+            'paciente@test.com',
+            'Ana',
+        )
 
         expect(usuarioModel.create).toHaveBeenCalledWith(
             {

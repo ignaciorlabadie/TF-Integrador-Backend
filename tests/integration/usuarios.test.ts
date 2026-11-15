@@ -27,8 +27,16 @@ vi.mock('bcryptjs', () => ({
     },
 }))
 
+vi.mock('../../src/services/emailService.js', () => ({
+    enviarEmailBienvenida: vi.fn(),
+    enviarEmailRecuperacion: vi.fn(),
+    enviarEmailTurnoCreado: vi.fn(),
+    enviarEmailTurnoCancelado: vi.fn(),
+}))
+
 import bcrypt from 'bcryptjs'
 import { usuarioModel } from '../helpers/mocksModelos.js'
+import { enviarEmailBienvenida } from '../../src/services/emailService.js'
 import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
@@ -44,6 +52,7 @@ beforeEach(() => {
     vi.resetAllMocks()
     vi.stubEnv('JWT_SECRET', JWT_SECRET)
     vi.mocked(bcrypt.hash).mockResolvedValue('hash-de-prueba' as never)
+    vi.mocked(enviarEmailBienvenida).mockResolvedValue(undefined)
 })
 
 afterEach(() => {
@@ -101,6 +110,10 @@ describe('POST /usuarios', () => {
             rol: 'PROFESIONAL',
             activo: true,
         })
+
+        expect(enviarEmailBienvenida).toHaveBeenCalledWith(
+            'profesional@test.com',
+        )
     })
 
     it('debe rechazar el alta de un paciente', async () => {
