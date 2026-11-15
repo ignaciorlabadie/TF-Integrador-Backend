@@ -75,4 +75,6 @@ export const MENSAJES = {
     TARIFA_DATOS_INVALIDOS: 'Datos de la tarifa inválidos',
     TARIFA_PRECIO_INVALIDO:
         'El precio por hora debe ser un número mayor a 0 con hasta 2 decimales',
+    TARIFA_SOLAPADA:
+        'La tarifa se superpone con otra existente para el mismo espacio y rango de fechas',
 } as const

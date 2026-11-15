@@ -34,6 +34,14 @@ const datosBase = {
     fechaHasta: null,
 }
 
+const tarifaVigenteExistente = {
+    id: 99,
+    espacioId: 10,
+    precioPorHora: '1000.00',
+    fechaDesde: '2025-01-01',
+    fechaHasta: null,
+}
+
 beforeEach(() => {
     vi.resetAllMocks()
 })
@@ -241,6 +249,10 @@ describe('tarifaEspacioService.crear - validaciones', () => {
 })
 
 describe('tarifaEspacioService.crear - existencia y alta', () => {
+    beforeEach(() => {
+        vi.mocked(tarifaEspaciosModel.findAll).mockResolvedValue([] as never)
+    })
+
     it('debe responder 404 si el espacio no existe', async () => {
         vi.mocked(espacioModel.findByPk).mockResolvedValue(null)
 
@@ -328,6 +340,114 @@ describe('tarifaEspacioService.crear - existencia y alta', () => {
 
         expect(tarifaEspaciosModel.create).toHaveBeenCalledWith(
             expect.objectContaining({ precioPorHora: '1500.50' }),
+        )
+    })
+})
+
+describe('tarifaEspacioService.crear - solapamiento', () => {
+    function prepararAlta(candidatas: object[]) {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(espacio as never)
+        vi.mocked(tarifaEspaciosModel.findAll).mockResolvedValue(
+            candidatas as never,
+        )
+        vi.mocked(tarifaEspaciosModel.create).mockResolvedValue({
+            id: 1,
+        } as never)
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(
+            tarifa as never,
+        )
+    }
+
+    it('debe responder 409 si ya existe una tarifa vigente para el espacio', async () => {
+        prepararAlta([tarifaVigenteExistente])
+
+        await expect(
+            tarifaEspacioService.crear(datosBase),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si se superpone con una tarifa cerrada', async () => {
+        prepararAlta([
+            {
+                ...tarifaVigenteExistente,
+                fechaDesde: '2026-01-01',
+                fechaHasta: '2026-12-31',
+            },
+        ])
+
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaDesde: '2026-06-01',
+                fechaHasta: '2026-06-30',
+            }),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('no debe considerarse conflicto si una termina un día antes', async () => {
+        prepararAlta([
+            {
+                ...tarifaVigenteExistente,
+                fechaDesde: '2026-01-01',
+                fechaHasta: '2026-12-31',
+            },
+        ])
+
+        await tarifaEspacioService.crear({
+            ...datosBase,
+            fechaDesde: '2027-01-01',
+            fechaHasta: null,
+        })
+
+        expect(tarifaEspaciosModel.create).toHaveBeenCalled()
+    })
+
+    it('debe considerarse conflicto si empieza el mismo día que termina la otra', async () => {
+        prepararAlta([
+            {
+                ...tarifaVigenteExistente,
+                fechaDesde: '2026-01-01',
+                fechaHasta: '2026-12-31',
+            },
+        ])
+
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaDesde: '2026-12-31',
+                fechaHasta: null,
+            }),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('no debe considerarse conflicto si la nueva termina antes de la existente', async () => {
+        prepararAlta([
+            {
+                ...tarifaVigenteExistente,
+                fechaDesde: '2027-01-01',
+                fechaHasta: null,
+            },
+        ])
+
+        await tarifaEspacioService.crear({
+            ...datosBase,
+            fechaDesde: '2026-01-01',
+            fechaHasta: '2026-12-31',
+        })
+
+        expect(tarifaEspaciosModel.create).toHaveBeenCalled()
+    })
+
+    it('debe consultar las tarifas del mismo espacio', async () => {
+        prepararAlta([])
+
+        await tarifaEspacioService.crear(datosBase)
+
+        expect(tarifaEspaciosModel.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({ where: { espacioId: 10 } }),
         )
     })
 })

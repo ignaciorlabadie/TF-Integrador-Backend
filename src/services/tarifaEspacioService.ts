@@ -74,6 +74,49 @@ function validarDatosCreacion(datos: DatosTarifaEspacio): DatosTarifaValidados {
     return { espacioId, precioPorHora, fechaDesde, fechaHasta }
 }
 
+function haySolapamiento(
+    inicioA: string,
+    finA: string | null,
+    inicioB: string,
+    finB: string | null,
+): boolean {
+    const finBIndefinido = finB === null
+    const finAIndefinido = finA === null
+
+    const inicioAAntesDeFinB = finBIndefinido || inicioA <= finB
+    const inicioBAntesDeFinA = finAIndefinido || inicioB <= finA
+
+    return inicioAAntesDeFinB && inicioBAntesDeFinA
+}
+
+async function verificarSolapamiento(
+    datos: DatosTarifaValidados,
+    idExcluir?: number,
+): Promise<void> {
+    const where: Record<string, unknown> = {
+        espacioId: datos.espacioId,
+    }
+
+    if (idExcluir !== undefined) {
+        where.id = { [Op.ne]: idExcluir }
+    }
+
+    const candidatas = await TarifaEspacios.findAll({ where })
+
+    const conflicto = candidatas.some((candidata) =>
+        haySolapamiento(
+            datos.fechaDesde,
+            datos.fechaHasta,
+            candidata.fechaDesde,
+            candidata.fechaHasta,
+        ),
+    )
+
+    if (conflicto) {
+        throw new AppError(409, MENSAJES.TARIFA_SOLAPADA)
+    }
+}
+
 export class TarifaEspacioService {
     async listar(
         filtros: ListarTarifasEspacioFiltros = {},
@@ -125,6 +168,8 @@ export class TarifaEspacioService {
         if (!espacio.activo) {
             throw new AppError(409, MENSAJES.ESPACIO_INACTIVO)
         }
+
+        await verificarSolapamiento(datosValidados)
 
         const tarifa = await TarifaEspacios.create({
             espacioId: datosValidados.espacioId,
