@@ -51,6 +51,13 @@ export class TarifaEspacioService {
             ],
         })
     }
+
+    async buscarPorId(id: number): Promise<TarifaEspacios | null> {
+        return TarifaEspacios.findByPk(
+            validarEnteroPositivo(id, 'ID de la tarifa de espacio'),
+            { include: incluirEspacio() },
+        )
+    }
 }
 
 export const tarifaEspacioService = new TarifaEspacioService()

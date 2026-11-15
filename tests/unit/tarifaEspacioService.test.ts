@@ -116,3 +116,39 @@ describe('tarifaEspacioService.listar', () => {
         expect(tarifaEspaciosModel.findAll).not.toHaveBeenCalled()
     })
 })
+
+describe('tarifaEspacioService.buscarPorId', () => {
+    it('debe rechazar un ID inválido con 400', async () => {
+        await expect(
+            tarifaEspacioService.buscarPorId(0),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe retornar la tarifa con su espacio', async () => {
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const resultado = await tarifaEspacioService.buscarPorId(1)
+
+        expect(tarifaEspaciosModel.findByPk).toHaveBeenCalledWith(1, {
+            include: [
+                {
+                    model: espacioModel,
+                    as: 'espacio',
+                    attributes: ['id', 'nombre', 'tipo', 'ubicacion', 'activo'],
+                },
+            ],
+        })
+        expect(resultado).toEqual(tarifa)
+    })
+
+    it('debe retornar null si no existe', async () => {
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(null)
+
+        const resultado = await tarifaEspacioService.buscarPorId(999)
+
+        expect(resultado).toBeNull()
+    })
+})
