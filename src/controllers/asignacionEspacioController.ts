@@ -81,10 +81,7 @@ export class AsignacionEspacioController {
 
             if (tipo !== undefined) {
                 if (!esTipoAsignacionValido(tipo)) {
-                    throw new AppError(
-                        400,
-                        MENSAJES.TIPO_ASIGNACION_INVALIDO,
-                    )
+                    throw new AppError(400, MENSAJES.TIPO_ASIGNACION_INVALIDO)
                 }
 
                 filtros.tipo = tipo

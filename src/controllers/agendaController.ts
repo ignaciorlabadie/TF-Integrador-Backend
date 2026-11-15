@@ -92,10 +92,7 @@ export class AgendaController {
 
             if (activo !== undefined) {
                 if (activo !== 'true' && activo !== 'false') {
-                    throw new AppError(
-                        400,
-                        MENSAJES.FILTRO_ACTIVO_INVALIDO,
-                    )
+                    throw new AppError(400, MENSAJES.FILTRO_ACTIVO_INVALIDO)
                 }
 
                 filtros.activo = activo === 'true'
@@ -108,7 +105,7 @@ export class AgendaController {
             return next(error)
         }
     }
-    
+
     async buscarPorId(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
@@ -124,7 +121,7 @@ export class AgendaController {
             return next(error)
         }
     }
-    
+
     async listarPorProfesional(
         req: Request,
         res: Response,
@@ -144,7 +141,7 @@ export class AgendaController {
             return next(error)
         }
     }
-    
+
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
             const datos = validarDatosCrearAgenda(req.body)
@@ -156,7 +153,7 @@ export class AgendaController {
             return next(error)
         }
     }
-    
+
     async actualizar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
@@ -172,7 +169,7 @@ export class AgendaController {
             return next(error)
         }
     }
-    
+
     async desactivar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)

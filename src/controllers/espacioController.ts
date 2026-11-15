@@ -91,10 +91,7 @@ export class EspacioController {
 
             if (activo !== undefined) {
                 if (activo !== 'true' && activo !== 'false') {
-                    throw new AppError(
-                        400,
-                        MENSAJES.FILTRO_ACTIVO_INVALIDO,
-                    )
+                    throw new AppError(400, MENSAJES.FILTRO_ACTIVO_INVALIDO)
                 }
 
                 filtros.activo = activo === 'true'
@@ -110,10 +107,7 @@ export class EspacioController {
 
             if (ubicacion !== undefined) {
                 if (!esUbicacionEspacioValida(ubicacion)) {
-                    throw new AppError(
-                        400,
-                        MENSAJES.UBICACION_ESPACIO_INVALIDA,
-                    )
+                    throw new AppError(400, MENSAJES.UBICACION_ESPACIO_INVALIDA)
                 }
 
                 filtros.ubicacion = ubicacion

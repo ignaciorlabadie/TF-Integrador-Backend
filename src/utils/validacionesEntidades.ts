@@ -37,9 +37,7 @@ export function esTipoAsignacionValido(
     return perteneceA(valor, TIPOS_ASIGNACION)
 }
 
-export function validarTipoAsignacion(
-    valor: unknown,
-): TipoAsignacionEspacio {
+export function validarTipoAsignacion(valor: unknown): TipoAsignacionEspacio {
     if (!esTipoAsignacionValido(valor)) {
         throw new AppError(400, MENSAJES.TIPO_ASIGNACION_INVALIDO)
     }
@@ -65,9 +63,7 @@ export function esUbicacionEspacioValida(
     return perteneceA(valor, UBICACIONES_ESPACIO)
 }
 
-export function validarUbicacionEspacio(
-    valor: unknown,
-): UbicacionEspacio {
+export function validarUbicacionEspacio(valor: unknown): UbicacionEspacio {
     if (!esUbicacionEspacioValida(valor)) {
         throw new AppError(400, MENSAJES.UBICACION_ESPACIO_INVALIDA)
     }

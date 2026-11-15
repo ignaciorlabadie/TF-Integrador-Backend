@@ -244,10 +244,7 @@ export class AsignacionEspacioService {
         )
 
         if (!profesional) {
-            throw new AppError(
-                404,
-                MENSAJES.PROFESIONAL_NO_ENCONTRADO,
-            )
+            throw new AppError(404, MENSAJES.PROFESIONAL_NO_ENCONTRADO)
         }
 
         await verificarSolapamiento(datosValidados)
@@ -274,10 +271,7 @@ export class AsignacionEspacioService {
         const existente = await AsignacionEspacio.findByPk(idValidado)
 
         if (!existente) {
-            throw new AppError(
-                404,
-                MENSAJES.ASIGNACION_NO_ENCONTRADA,
-            )
+            throw new AppError(404, MENSAJES.ASIGNACION_NO_ENCONTRADA)
         }
 
         const datosValidados = validarDatosCreacion(datos)
@@ -297,10 +291,7 @@ export class AsignacionEspacioService {
         )
 
         if (!profesional) {
-            throw new AppError(
-                404,
-                MENSAJES.PROFESIONAL_NO_ENCONTRADO,
-            )
+            throw new AppError(404, MENSAJES.PROFESIONAL_NO_ENCONTRADO)
         }
 
         await verificarSolapamiento(datosValidados, idValidado)
@@ -327,10 +318,7 @@ export class AsignacionEspacioService {
         const existente = await AsignacionEspacio.findByPk(idValidado)
 
         if (!existente) {
-            throw new AppError(
-                404,
-                MENSAJES.ASIGNACION_NO_ENCONTRADA,
-            )
+            throw new AppError(404, MENSAJES.ASIGNACION_NO_ENCONTRADA)
         }
 
         await AsignacionEspacio.destroy({ where: { id: idValidado } })

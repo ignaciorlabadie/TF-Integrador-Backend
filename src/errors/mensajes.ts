@@ -11,13 +11,13 @@ export const MENSAJES = {
         'Si el email está registrado, vas a recibir un enlace de recuperación',
     TOKEN_RECUPERACION_INVALIDO: 'El enlace es inválido o expiró',
     PASSWORD_ACTUALIZADA: 'Contraseña actualizada correctamente',
-    
+
     // Profesionales
     PROFESIONAL_NO_ENCONTRADO: 'Profesional no encontrado',
     ROL_PROFESIONAL_REQUERIDO: 'La cuenta debe tener el rol PROFESIONAL',
     MATRICULA_YA_REGISTRADA: 'La matrícula ya está registrada',
     PERFIL_YA_ASIGNADO: 'La cuenta ya tiene un perfil profesional asignado',
-    
+
     // Turnos
     TURNO_YA_EXISTE_EN_ESA_FECHA_HORA:
         'Ya existe un turno para ese profesional en la fecha y hora seleccionada',
