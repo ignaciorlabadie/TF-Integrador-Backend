@@ -1,5 +1,7 @@
 import { ROLES } from '../types/Rol.js'
 import type { Rol } from '../types/Rol.js'
+import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const DNI_REGEX = /^\d{7,8}$/
@@ -63,6 +65,25 @@ export function esFechaValida(fecha: string): boolean {
     }
 
     return fechaParseada.toISOString().slice(0, 10) === fecha
+}
+
+export function validarFecha(valor: unknown): string {
+    if (typeof valor !== 'string' || !esFechaValida(valor)) {
+        throw new AppError(400, MENSAJES.FECHA_INVALIDA)
+    }
+
+    return valor
+}
+
+export function validarFechaNoPasada(valor: unknown): string {
+    const fecha = validarFecha(valor)
+    const hoy = new Date().toISOString().slice(0, 10)
+
+    if (fecha < hoy) {
+        throw new AppError(400, MENSAJES.FECHA_PASADA)
+    }
+
+    return fecha
 }
 
 export function esFechaNacimientoValida(fecha: string): boolean {
