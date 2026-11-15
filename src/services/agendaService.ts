@@ -26,14 +26,15 @@ import { Op } from 'sequelize'
 import { Agenda, Profesional, Turno } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
-import { DIAS_SEMANA } from '../types/DiaSemana.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
 import {
     diaSemanaDeFecha,
     horaAMinutos,
-    normalizarHora,
+    normalizarHoraPersistida,
+    validarBloqueHorario,
 } from '../utils/horarios.js'
 import { validarEnteroPositivo } from '../utils/validarId.js'
+import { validarDiaSemana } from '../utils/validacionesEntidades.js'
 
 export interface ListarAgendasFiltros {
     profesionalId?: number
@@ -89,25 +90,6 @@ interface HorarioValidado {
     finMinutos: number
 }
 
-// Mensajes propios del dominio de agendas.
-const MENSAJES_AGENDA = {
-    AGENDA_NO_ENCONTRADA: 'Agenda no encontrada',
-    DIA_SEMANA_INVALIDO: 'El día de la semana no es válido',
-    HORA_INVALIDA: 'Las horas deben tener un formato válido HH:mm',
-    HORARIO_INVALIDO:
-        'La hora de inicio debe ser anterior a la hora de finalización',
-    DURACION_INVALIDA:
-        'La duración del turno debe ser un número entero positivo',
-    DURACION_INCOMPATIBLE:
-        'La duración del turno debe ser menor o igual al intervalo horario',
-    AGENDA_SUPERPUESTA:
-        'Ya existe una agenda activa para el profesional en ese día y horario',
-    TURNOS_FUTUROS_AFECTADOS:
-        'La agenda tiene turnos futuros que quedarían fuera de la nueva disponibilidad',
-    TURNOS_FUTUROS_PENDIENTES:
-        'No se puede desactivar la agenda porque tiene turnos futuros registrados',
-} as const
-
 /**
  * Incluye únicamente información pública del profesional.
  * Nunca se incluye Usuario para evitar exponer datos sensibles.
@@ -118,16 +100,6 @@ function incluirProfesional() {
         as: 'profesional',
         attributes: ['id', 'nombre', 'apellido', 'matricula', 'especialidad'],
     }
-}
-
-/**
- * Verifica que el valor pertenezca al ENUM de días del modelo.
- */
-function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
-    return (
-        typeof valor === 'string' &&
-        (DIAS_SEMANA as readonly string[]).includes(valor)
-    )
 }
 
 /**
@@ -146,53 +118,30 @@ function validarHorario(
     horaFin: unknown,
     duracionTurno: unknown,
 ): HorarioValidado {
-    if (!esDiaSemanaValido(diaSemana)) {
-        throw new AppError(400, MENSAJES_AGENDA.DIA_SEMANA_INVALIDO)
-    }
-
-    const horaInicioNormalizada = normalizarHora(
-        horaInicio,
-        'horaInicio',
-        MENSAJES_AGENDA.HORA_INVALIDA,
-    )
-    const horaFinNormalizada = normalizarHora(
-        horaFin,
-        'horaFin',
-        MENSAJES_AGENDA.HORA_INVALIDA,
-    )
-
-    const inicioMinutos = horaAMinutos(horaInicioNormalizada)
-    const finMinutos = horaAMinutos(horaFinNormalizada)
-
-    if (inicioMinutos === null || finMinutos === null) {
-        throw new AppError(400, MENSAJES_AGENDA.HORA_INVALIDA)
-    }
-
-    if (inicioMinutos >= finMinutos) {
-        throw new AppError(400, MENSAJES_AGENDA.HORARIO_INVALIDO)
-    }
+    const dia = validarDiaSemana(diaSemana)
+    const bloque = validarBloqueHorario(horaInicio, horaFin)
 
     if (
         typeof duracionTurno !== 'number' ||
         !Number.isInteger(duracionTurno) ||
         duracionTurno <= 0
     ) {
-        throw new AppError(400, MENSAJES_AGENDA.DURACION_INVALIDA)
+        throw new AppError(400, MENSAJES.DURACION_TURNO_INVALIDA)
     }
 
-    const totalMinutos = finMinutos - inicioMinutos
+    const totalMinutos = bloque.finMinutos - bloque.inicioMinutos
 
     if (duracionTurno > totalMinutos) {
-        throw new AppError(400, MENSAJES_AGENDA.DURACION_INCOMPATIBLE)
+        throw new AppError(400, MENSAJES.DURACION_TURNO_INCOMPATIBLE)
     }
 
     return {
-        diaSemana,
-        horaInicio: horaInicioNormalizada,
-        horaFin: horaFinNormalizada,
+        diaSemana: dia,
+        horaInicio: bloque.horaInicio,
+        horaFin: bloque.horaFin,
         duracionTurno,
-        inicioMinutos,
-        finMinutos,
+        inicioMinutos: bloque.inicioMinutos,
+        finMinutos: bloque.finMinutos,
     }
 }
 
@@ -258,7 +207,7 @@ async function verificarSuperposicion(
     })
 
     if (superpuesta) {
-        throw new AppError(409, MENSAJES_AGENDA.AGENDA_SUPERPUESTA)
+        throw new AppError(409, MENSAJES.AGENDA_SUPERPUESTA)
     }
 }
 
@@ -439,34 +388,34 @@ export class AgendaService {
         const agenda = await Agenda.findByPk(id)
 
         if (!agenda) {
-            throw new AppError(404, MENSAJES_AGENDA.AGENDA_NO_ENCONTRADA)
+            throw new AppError(404, MENSAJES.AGENDA_NO_ENCONTRADA)
         }
 
         // Se combinan los datos recibidos con los actuales para validar
         // el horario completo resultante, aunque la actualización sea parcial.
-        const diaSemana =
-            datos.diaSemana !== undefined ? datos.diaSemana : agenda.diaSemana
         const horaInicio =
             datos.horaInicio !== undefined
                 ? datos.horaInicio
-                : agenda.horaInicio
+                : normalizarHoraPersistida(agenda.horaInicio, 'horaInicio')
+
         const horaFin =
-            datos.horaFin !== undefined ? datos.horaFin : agenda.horaFin
-        const duracionTurno =
-            datos.duracionTurno !== undefined
-                ? datos.duracionTurno
-                : agenda.duracionTurno
+            datos.horaFin !== undefined
+                ? datos.horaFin
+                : normalizarHoraPersistida(agenda.horaFin, 'horaFin')
 
         const horario = validarHorario(
-            diaSemana,
+            datos.diaSemana !== undefined ? datos.diaSemana : agenda.diaSemana,
             horaInicio,
             horaFin,
-            duracionTurno,
+            datos.duracionTurno !== undefined
+                ? datos.duracionTurno
+                : agenda.duracionTurno,
         )
+
         const horarioActual = validarHorario(
             agenda.diaSemana,
-            agenda.horaInicio,
-            agenda.horaFin,
+            normalizarHoraPersistida(agenda.horaInicio, 'horaInicio'),
+            normalizarHoraPersistida(agenda.horaFin, 'horaFin'),
             agenda.duracionTurno,
         )
 
@@ -498,7 +447,7 @@ export class AgendaService {
                     // fuera de la disponibilidad sin resolución explícita.
                     throw new AppError(
                         409,
-                        `${MENSAJES_AGENDA.TURNOS_FUTUROS_AFECTADOS}. Cancelá o reprogramá esos turnos antes de continuar`,
+                        `${MENSAJES.TURNOS_FUTUROS_AFECTADOS}. Cancelá o reprogramá esos turnos antes de continuar`,
                     )
                 }
             }
@@ -531,7 +480,7 @@ export class AgendaService {
         const agenda = await Agenda.findByPk(id)
 
         if (!agenda) {
-            throw new AppError(404, MENSAJES_AGENDA.AGENDA_NO_ENCONTRADA)
+            throw new AppError(404, MENSAJES.AGENDA_NO_ENCONTRADA)
         }
 
         // Si ya está inactiva no hace falta volver a guardarla.
@@ -549,7 +498,7 @@ export class AgendaService {
                 // que todavía tiene turnos futuros sin resolver.
                 throw new AppError(
                     409,
-                    `${MENSAJES_AGENDA.TURNOS_FUTUROS_PENDIENTES}. Cancelá o reprogramá esos turnos antes de continuar`,
+                    `${MENSAJES.TURNOS_FUTUROS_PENDIENTES}. Cancelá o reprogramá esos turnos antes de continuar`,
                 )
             }
         }
