@@ -239,3 +239,95 @@ describe('tarifaEspacioService.crear - validaciones', () => {
         expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
     })
 })
+
+describe('tarifaEspacioService.crear - existencia y alta', () => {
+    it('debe responder 404 si el espacio no existe', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(null)
+
+        await expect(
+            tarifaEspacioService.crear(datosBase),
+        ).rejects.toMatchObject({ statusCode: 404 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si el espacio está inactivo', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue({
+            ...espacio,
+            activo: false,
+        } as never)
+
+        await expect(
+            tarifaEspacioService.crear(datosBase),
+        ).rejects.toMatchObject({ statusCode: 409 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe crear una tarifa vigente normalizando el precio', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(espacio as never)
+        vi.mocked(tarifaEspaciosModel.create).mockResolvedValue({
+            id: 1,
+        } as never)
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const resultado = await tarifaEspacioService.crear({
+            ...datosBase,
+            precioPorHora: 1500.5,
+        })
+
+        expect(tarifaEspaciosModel.create).toHaveBeenCalledWith({
+            espacioId: 10,
+            precioPorHora: '1500.50',
+            fechaDesde: '2026-01-01',
+            fechaHasta: null,
+        })
+        expect(resultado).toEqual(tarifa)
+    })
+
+    it('debe permitir crear tarifas con fechas históricas', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(espacio as never)
+        vi.mocked(tarifaEspaciosModel.create).mockResolvedValue({
+            id: 2,
+        } as never)
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue({
+            ...tarifa,
+            id: 2,
+            fechaDesde: '2020-01-01',
+            fechaHasta: '2020-12-31',
+        } as never)
+
+        await tarifaEspacioService.crear({
+            espacioId: 10,
+            precioPorHora: '1000',
+            fechaDesde: '2020-01-01',
+            fechaHasta: '2020-12-31',
+        })
+
+        expect(tarifaEspaciosModel.create).toHaveBeenCalledWith({
+            espacioId: 10,
+            precioPorHora: '1000.00',
+            fechaDesde: '2020-01-01',
+            fechaHasta: '2020-12-31',
+        })
+    })
+
+    it('debe normalizar el precio de un string con un decimal', async () => {
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(espacio as never)
+        vi.mocked(tarifaEspaciosModel.create).mockResolvedValue({
+            id: 1,
+        } as never)
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(
+            tarifa as never,
+        )
+
+        await tarifaEspacioService.crear({
+            ...datosBase,
+            precioPorHora: '1500.5',
+        })
+
+        expect(tarifaEspaciosModel.create).toHaveBeenCalledWith(
+            expect.objectContaining({ precioPorHora: '1500.50' }),
+        )
+    })
+})

@@ -115,9 +115,25 @@ export class TarifaEspacioService {
     }
 
     async crear(datos: DatosTarifaEspacio): Promise<TarifaEspacios | null> {
-        validarDatosCreacion(datos)
+        const datosValidados = validarDatosCreacion(datos)
+        const espacio = await Espacio.findByPk(datosValidados.espacioId)
 
-        return null
+        if (!espacio) {
+            throw new AppError(404, MENSAJES.ESPACIO_NO_ENCONTRADO)
+        }
+
+        if (!espacio.activo) {
+            throw new AppError(409, MENSAJES.ESPACIO_INACTIVO)
+        }
+
+        const tarifa = await TarifaEspacios.create({
+            espacioId: datosValidados.espacioId,
+            precioPorHora: datosValidados.precioPorHora,
+            fechaDesde: datosValidados.fechaDesde,
+            fechaHasta: datosValidados.fechaHasta,
+        })
+
+        return this.buscarPorId(tarifa.id)
     }
 }
 
