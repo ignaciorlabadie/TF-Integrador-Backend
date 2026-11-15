@@ -72,4 +72,7 @@ export const MENSAJES = {
 
     // Tarifas de espacio
     FILTRO_VIGENTE_INVALIDO: 'El filtro vigente debe ser true o false',
+    TARIFA_DATOS_INVALIDOS: 'Datos de la tarifa inválidos',
+    TARIFA_PRECIO_INVALIDO:
+        'El precio por hora debe ser un número mayor a 0 con hasta 2 decimales',
 } as const

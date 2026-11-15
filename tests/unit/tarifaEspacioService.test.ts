@@ -27,6 +27,13 @@ const tarifa = {
     espacio,
 }
 
+const datosBase = {
+    espacioId: 10,
+    precioPorHora: '1500.50',
+    fechaDesde: '2026-01-01',
+    fechaHasta: null,
+}
+
 beforeEach(() => {
     vi.resetAllMocks()
 })
@@ -150,5 +157,85 @@ describe('tarifaEspacioService.buscarPorId', () => {
         const resultado = await tarifaEspacioService.buscarPorId(999)
 
         expect(resultado).toBeNull()
+    })
+})
+
+describe('tarifaEspacioService.crear - validaciones', () => {
+    it('debe rechazar datos inválidos con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear(null as never),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un espacioId inválido con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({ ...datosBase, espacioId: 0 }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(espacioModel.findByPk).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un precio no numérico con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({ ...datosBase, precioPorHora: 'abc' }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un precio menor o igual a 0 con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({ ...datosBase, precioPorHora: 0 }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar un precio con más de 2 decimales con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                precioPorHora: 1500.555,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una fechaDesde inválida con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaDesde: '2026-13-01',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una fechaDesde faltante con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaDesde: undefined as never,
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una fechaHasta inválida con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaHasta: '2026-02-30',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
+    })
+
+    it('debe rechazar una fechaHasta anterior a fechaDesde con 400', async () => {
+        await expect(
+            tarifaEspacioService.crear({
+                ...datosBase,
+                fechaHasta: '2025-12-31',
+            }),
+        ).rejects.toMatchObject({ statusCode: 400 })
+        expect(tarifaEspaciosModel.create).not.toHaveBeenCalled()
     })
 })
