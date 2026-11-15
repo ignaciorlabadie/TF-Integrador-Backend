@@ -17,13 +17,19 @@ vi.mock('bcryptjs', () => ({
     },
 }))
 
+vi.mock('../../src/services/emailService.js', () => ({
+    enviarEmailBienvenida: vi.fn(),
+}))
+
 import Usuario from '../../src/models/Usuario.js'
 import bcrypt from 'bcryptjs'
 
+import { enviarEmailBienvenida } from '../../src/services/emailService.js'
 import { usuarioService } from '../../src/services/usuarioService.js'
 
 beforeEach(() => {
     vi.clearAllMocks()
+    vi.mocked(enviarEmailBienvenida).mockResolvedValue(undefined)
 })
 
 describe('usuarioService', () => {
@@ -106,6 +112,31 @@ describe('usuarioService', () => {
         )
 
         expect(bcrypt.hash).toHaveBeenCalledWith('12345678', 10)
+
+        expect(enviarEmailBienvenida).toHaveBeenCalledWith(
+            'usuario@example.com',
+        )
+    })
+
+    it('no debe enviar bienvenida si la cuenta se crea inactiva', async () => {
+        vi.mocked(Usuario.findOne).mockResolvedValue(null)
+        vi.mocked(bcrypt.hash).mockResolvedValue('hash' as never)
+        vi.mocked(Usuario.create).mockResolvedValue({
+            id: 2,
+            email: 'inactivo@example.com',
+            password: 'hash',
+            rol: 'PROFESIONAL',
+            activo: false,
+        } as never)
+
+        await usuarioService.crear({
+            email: 'inactivo@example.com',
+            password: '12345678',
+            rol: 'PROFESIONAL',
+            activo: false,
+        })
+
+        expect(enviarEmailBienvenida).not.toHaveBeenCalled()
     })
 
     it('debe rechazar un email ya registrado al crear', async () => {
