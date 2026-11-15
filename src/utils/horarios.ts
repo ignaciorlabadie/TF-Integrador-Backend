@@ -1,11 +1,11 @@
 import { AppError } from '../errors/AppError.js'
 import type { DiaSemana } from '../types/DiaSemana.js'
+import { MENSAJES } from '../errors/mensajes.js'
 
-// Acepta HH:mm y HH:mm:ss. Los segundos se descartan al normalizar
-// porque PostgreSQL los agrega al leer columnas DataTypes.TIME.
+// Se mantiene HORA_REGEX para valores que vienen de PostgreSQL (HH:mm:ss).
 export const HORA_REGEX = /^([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/
 
-// Variante estricta para validaciones HTTP que solo aceptan HH:mm.
+// Estricta para input HTTP/servicio: solo HH:mm.
 export const HORA_REGEX_HHMM = /^([01]\d|2[0-3]):[0-5]\d$/
 
 // getUTCDay() devuelve 0=domingo ... 6=sábado.
@@ -43,10 +43,22 @@ export function horaAMinutos(valor: unknown): number | null {
 export function normalizarHora(
     valor: unknown,
     nombreCampo: string,
-    mensaje = 'La hora debe tener formato HH:mm',
+    mensaje = MENSAJES.HORA_INVALIDA,
+): string {
+    if (typeof valor !== 'string' || !HORA_REGEX_HHMM.test(valor)) {
+        throw new AppError(400, `${mensaje} (${nombreCampo})`)
+    }
+
+    return valor
+}
+
+// Solo para horas leídas de la base (pueden venir como HH:mm:ss).
+export function normalizarHoraPersistida(
+    valor: unknown,
+    nombreCampo = 'hora',
 ): string {
     if (typeof valor !== 'string' || horaAMinutos(valor) === null) {
-        throw new AppError(400, `${mensaje} (${nombreCampo})`)
+        throw new AppError(500, `Hora persistida inválida en ${nombreCampo}`)
     }
 
     return valor.slice(0, 5)
@@ -61,4 +73,31 @@ export function diaSemanaDeFecha(fecha: string): DiaSemana | null {
     }
 
     return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
+}
+
+export interface BloqueHorarioValidado {
+    horaInicio: string
+    horaFin: string
+    inicioMinutos: number
+    finMinutos: number
+}
+
+export function validarBloqueHorario(
+    horaInicio: unknown,
+    horaFin: unknown,
+): BloqueHorarioValidado {
+    const inicio = normalizarHora(horaInicio, 'horaInicio')
+    const fin = normalizarHora(horaFin, 'horaFin')
+    const inicioMinutos = horaAMinutos(inicio)
+    const finMinutos = horaAMinutos(fin)
+
+    if (inicioMinutos === null || finMinutos === null) {
+        throw new AppError(400, MENSAJES.HORA_INVALIDA)
+    }
+
+    if (inicioMinutos >= finMinutos) {
+        throw new AppError(400, MENSAJES.HORARIO_INVALIDO)
+    }
+
+    return { horaInicio: inicio, horaFin: fin, inicioMinutos, finMinutos }
 }

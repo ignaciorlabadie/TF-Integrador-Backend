@@ -197,48 +197,6 @@ describe('espacioController.crear', () => {
         expect(espacioService.crear).not.toHaveBeenCalled()
     })
 
-    it('debe responder 400 si el nombre es inválido', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            nombre: '   ',
-        })
-
-        await espacioController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(espacioService.crear).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si el tipo es inválido', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            tipo: 'OTRO',
-        })
-
-        await espacioController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(espacioService.crear).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si la ubicación es inválida', async () => {
-        const { req, res, next } = crearMocks({
-            ...datosCreacion,
-            ubicacion: 'ARRIBA',
-        })
-
-        await espacioController.crear(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(espacioService.crear).not.toHaveBeenCalled()
-    })
-
     it('debe responder 201 enviando solo los campos permitidos', async () => {
         vi.mocked(espacioService.crear).mockResolvedValue(espacio as never)
 
@@ -286,17 +244,6 @@ describe('espacioController.actualizar', () => {
 
     it('debe responder 400 si el body está vacío', async () => {
         const { req, res, next } = crearMocks({}, { id: '10' })
-
-        await espacioController.actualizar(req, res, next)
-
-        expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 400 }),
-        )
-        expect(espacioService.actualizar).not.toHaveBeenCalled()
-    })
-
-    it('debe responder 400 si un campo tiene un valor inválido', async () => {
-        const { req, res, next } = crearMocks({ tipo: 'OTRO' }, { id: '10' })
 
         await espacioController.actualizar(req, res, next)
 

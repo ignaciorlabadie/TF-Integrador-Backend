@@ -7,18 +7,9 @@ import type {
     OpcionesActualizarAgenda,
     OpcionesDesactivarAgenda,
 } from '../services/agendaService.js'
-import { DIAS_SEMANA } from '../types/DiaSemana.js'
-import type { DiaSemana } from '../types/DiaSemana.js'
 import { AppError } from '../errors/AppError.js'
-import { HORA_REGEX_HHMM } from '../utils/horarios.js'
+import { MENSAJES } from '../errors/mensajes.js'
 import { validarId } from '../utils/validarId.js'
-
-function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
-    return (
-        typeof valor === 'string' &&
-        (DIAS_SEMANA as readonly string[]).includes(valor)
-    )
-}
 
 function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
     const datos = body ?? {}
@@ -38,34 +29,8 @@ function validarDatosCrearAgenda(body: Request['body']): DatosAgenda {
         )
     }
 
-    const idProfesional = validarId(profesionalId, 'profesionalId')
-
-    if (!esDiaSemanaValido(diaSemana)) {
-        throw new AppError(400, 'El día de la semana no es válido')
-    }
-
-    if (
-        typeof horaInicio !== 'string' ||
-        !HORA_REGEX_HHMM.test(horaInicio) ||
-        typeof horaFin !== 'string' ||
-        !HORA_REGEX_HHMM.test(horaFin)
-    ) {
-        throw new AppError(400, 'Las horas deben tener un formato válido HH:mm')
-    }
-
-    if (
-        typeof duracionTurno !== 'number' ||
-        !Number.isInteger(duracionTurno) ||
-        duracionTurno <= 0
-    ) {
-        throw new AppError(
-            400,
-            'La duración del turno debe ser un número entero positivo',
-        )
-    }
-
     return {
-        profesionalId: idProfesional,
+        profesionalId: validarId(profesionalId, 'profesionalId'),
         diaSemana,
         horaInicio,
         horaFin,
@@ -90,58 +55,23 @@ function validarDatosActualizarAgenda(body: Request['body']): {
     }
 
     if (cuerpo.diaSemana !== undefined) {
-        if (!esDiaSemanaValido(cuerpo.diaSemana)) {
-            throw new AppError(400, 'El día de la semana no es válido')
-        }
-
         datos.diaSemana = cuerpo.diaSemana
     }
 
     if (cuerpo.horaInicio !== undefined) {
-        if (
-            typeof cuerpo.horaInicio !== 'string' ||
-            !HORA_REGEX_HHMM.test(cuerpo.horaInicio)
-        ) {
-            throw new AppError(
-                400,
-                'Las horas deben tener un formato válido HH:mm',
-            )
-        }
-
         datos.horaInicio = cuerpo.horaInicio
     }
 
     if (cuerpo.horaFin !== undefined) {
-        if (
-            typeof cuerpo.horaFin !== 'string' ||
-            !HORA_REGEX_HHMM.test(cuerpo.horaFin)
-        ) {
-            throw new AppError(
-                400,
-                'Las horas deben tener un formato válido HH:mm',
-            )
-        }
-
         datos.horaFin = cuerpo.horaFin
     }
 
     if (cuerpo.duracionTurno !== undefined) {
-        if (
-            typeof cuerpo.duracionTurno !== 'number' ||
-            !Number.isInteger(cuerpo.duracionTurno) ||
-            cuerpo.duracionTurno <= 0
-        ) {
-            throw new AppError(
-                400,
-                'La duración del turno debe ser un número entero positivo',
-            )
-        }
-
         datos.duracionTurno = cuerpo.duracionTurno
     }
 
     if (Object.keys(datos).length === 0) {
-        throw new AppError(400, 'No hay datos para actualizar')
+        throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
     }
 
     return { datos, opciones }
@@ -162,10 +92,7 @@ export class AgendaController {
 
             if (activo !== undefined) {
                 if (activo !== 'true' && activo !== 'false') {
-                    throw new AppError(
-                        400,
-                        'El filtro activo debe ser true o false',
-                    )
+                    throw new AppError(400, MENSAJES.FILTRO_ACTIVO_INVALIDO)
                 }
 
                 filtros.activo = activo === 'true'
@@ -178,6 +105,7 @@ export class AgendaController {
             return next(error)
         }
     }
+
     async buscarPorId(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
@@ -193,6 +121,7 @@ export class AgendaController {
             return next(error)
         }
     }
+
     async listarPorProfesional(
         req: Request,
         res: Response,
@@ -212,6 +141,7 @@ export class AgendaController {
             return next(error)
         }
     }
+
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
             const datos = validarDatosCrearAgenda(req.body)
@@ -223,6 +153,7 @@ export class AgendaController {
             return next(error)
         }
     }
+
     async actualizar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)
@@ -238,6 +169,7 @@ export class AgendaController {
             return next(error)
         }
     }
+
     async desactivar(req: Request, res: Response, next: NextFunction) {
         try {
             const id = validarId(req.params.id)

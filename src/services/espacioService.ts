@@ -6,12 +6,15 @@ import {
     TarifaEspacios,
 } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
 import { esFechaValida, esTextoValido } from '../utils/validacion.js'
 import { validarEnteroPositivo } from '../utils/validarId.js'
-import { TIPOS_ESPACIO } from '../types/TipoEspacio.js'
 import type { TipoEspacio } from '../types/TipoEspacio.js'
-import { UBICACIONES_ESPACIO } from '../types/UbicacionEspacio.js'
 import type { UbicacionEspacio } from '../types/UbicacionEspacio.js'
+import {
+    esTipoEspacioValido,
+    esUbicacionEspacioValida,
+} from '../utils/validacionesEntidades.js'
 
 export interface ListarEspaciosFiltros {
     activo?: boolean
@@ -27,54 +30,25 @@ export interface DatosEspacio {
 
 export type DatosActualizarEspacio = Partial<DatosEspacio>
 
-const MENSAJES_ESPACIO = {
-    ESPACIO_NO_ENCONTRADO: 'Espacio no encontrado',
-    NOMBRE_INVALIDO:
-        'El nombre del espacio debe tener entre 1 y 100 caracteres',
-    TIPO_INVALIDO: 'El tipo de espacio no es válido',
-    UBICACION_INVALIDA: 'La ubicación del espacio no es válida',
-    ACTIVO_INVALIDO: 'El filtro activo debe ser booleano',
-    SIN_DATOS_ACTUALIZAR: 'No hay datos para actualizar',
-    FECHA_INVALIDA: 'Las fechas deben tener el formato YYYY-MM-DD',
-    RANGO_FECHAS_INVALIDO:
-        'La fecha de inicio no puede ser posterior a la fecha de fin',
-    ESPACIO_CON_DEPENDENCIAS:
-        'No se puede eliminar el espacio porque tiene asignaciones o tarifas asociadas. Podés desactivarlo en su lugar',
-} as const
-
 function validarNombre(valor: unknown): string {
     if (!esTextoValido(valor, 1, 100)) {
-        throw new AppError(400, MENSAJES_ESPACIO.NOMBRE_INVALIDO)
+        throw new AppError(400, MENSAJES.NOMBRE_ESPACIO_INVALIDO)
     }
 
     return valor.trim()
 }
 
-function esTipoEspacioValido(valor: unknown): valor is TipoEspacio {
-    return (
-        typeof valor === 'string' &&
-        (TIPOS_ESPACIO as readonly string[]).includes(valor)
-    )
-}
-
 function validarTipo(valor: unknown): TipoEspacio {
     if (!esTipoEspacioValido(valor)) {
-        throw new AppError(400, MENSAJES_ESPACIO.TIPO_INVALIDO)
+        throw new AppError(400, MENSAJES.TIPO_ESPACIO_INVALIDO)
     }
 
     return valor
 }
 
-function esUbicacionEspacioValida(valor: unknown): valor is UbicacionEspacio {
-    return (
-        typeof valor === 'string' &&
-        (UBICACIONES_ESPACIO as readonly string[]).includes(valor)
-    )
-}
-
 function validarUbicacion(valor: unknown): UbicacionEspacio {
     if (!esUbicacionEspacioValida(valor)) {
-        throw new AppError(400, MENSAJES_ESPACIO.UBICACION_INVALIDA)
+        throw new AppError(400, MENSAJES.UBICACION_ESPACIO_INVALIDA)
     }
 
     return valor
@@ -85,11 +59,11 @@ async function obtenerOcupacion(
     fechaFin: string,
 ): Promise<Espacio[]> {
     if (!esFechaValida(fechaInicio) || !esFechaValida(fechaFin)) {
-        throw new AppError(400, MENSAJES_ESPACIO.FECHA_INVALIDA)
+        throw new AppError(400, MENSAJES.ESPACIO_FECHAS_INVALIDAS)
     }
 
     if (fechaInicio > fechaFin) {
-        throw new AppError(400, MENSAJES_ESPACIO.RANGO_FECHAS_INVALIDO)
+        throw new AppError(400, MENSAJES.RANGO_FECHAS_INVALIDO)
     }
 
     return Espacio.findAll({
@@ -123,6 +97,28 @@ async function obtenerOcupacion(
 }
 
 export class EspacioService {
+    private async cambiarActivo(
+        id: number,
+        activo: boolean,
+    ): Promise<Espacio | null> {
+        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
+        const espacio = await Espacio.findByPk(idValidado)
+
+        if (!espacio) {
+            throw new AppError(404, MENSAJES.ESPACIO_NO_ENCONTRADO)
+        }
+
+        if (espacio.activo === activo) {
+            return this.buscarPorId(idValidado)
+        }
+
+        espacio.activo = activo
+
+        await espacio.save()
+
+        return this.buscarPorId(idValidado)
+    }
+
     async listar(filtros: ListarEspaciosFiltros = {}): Promise<Espacio[]> {
         const where: {
             activo?: boolean
@@ -132,7 +128,7 @@ export class EspacioService {
 
         if (filtros.activo !== undefined) {
             if (typeof filtros.activo !== 'boolean') {
-                throw new AppError(400, MENSAJES_ESPACIO.ACTIVO_INVALIDO)
+                throw new AppError(400, MENSAJES.FILTRO_ACTIVO_INVALIDO)
             }
 
             where.activo = filtros.activo
@@ -158,7 +154,7 @@ export class EspacioService {
 
     async crear(datos: DatosEspacio): Promise<Espacio | null> {
         if (!datos || typeof datos !== 'object') {
-            throw new AppError(400, 'Datos del espacio inválidos')
+            throw new AppError(400, MENSAJES.ESPACIO_DATOS_INVALIDOS)
         }
 
         const espacio = await Espacio.create({
@@ -177,13 +173,13 @@ export class EspacioService {
         const idValidado = validarEnteroPositivo(id, 'ID del espacio')
 
         if (!datos || Object.keys(datos).length === 0) {
-            throw new AppError(400, MENSAJES_ESPACIO.SIN_DATOS_ACTUALIZAR)
+            throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
         }
 
         const espacio = await Espacio.findByPk(idValidado)
 
         if (!espacio) {
-            throw new AppError(404, MENSAJES_ESPACIO.ESPACIO_NO_ENCONTRADO)
+            throw new AppError(404, MENSAJES.ESPACIO_NO_ENCONTRADO)
         }
 
         if (datos.nombre !== undefined) {
@@ -204,41 +200,11 @@ export class EspacioService {
     }
 
     async desactivar(id: number): Promise<Espacio | null> {
-        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
-        const espacio = await Espacio.findByPk(idValidado)
-
-        if (!espacio) {
-            throw new AppError(404, MENSAJES_ESPACIO.ESPACIO_NO_ENCONTRADO)
-        }
-
-        if (!espacio.activo) {
-            return this.buscarPorId(idValidado)
-        }
-
-        espacio.activo = false
-
-        await espacio.save()
-
-        return this.buscarPorId(idValidado)
+        return this.cambiarActivo(id, false)
     }
 
     async reactivar(id: number): Promise<Espacio | null> {
-        const idValidado = validarEnteroPositivo(id, 'ID del espacio')
-        const espacio = await Espacio.findByPk(idValidado)
-
-        if (!espacio) {
-            throw new AppError(404, MENSAJES_ESPACIO.ESPACIO_NO_ENCONTRADO)
-        }
-
-        if (espacio.activo) {
-            return this.buscarPorId(idValidado)
-        }
-
-        espacio.activo = true
-
-        await espacio.save()
-
-        return this.buscarPorId(idValidado)
+        return this.cambiarActivo(id, true)
     }
 
     async eliminar(id: number): Promise<void> {
@@ -246,7 +212,7 @@ export class EspacioService {
         const espacio = await Espacio.findByPk(idValidado)
 
         if (!espacio) {
-            throw new AppError(404, MENSAJES_ESPACIO.ESPACIO_NO_ENCONTRADO)
+            throw new AppError(404, MENSAJES.ESPACIO_NO_ENCONTRADO)
         }
 
         const [asignaciones, tarifas] = await Promise.all([
@@ -255,7 +221,7 @@ export class EspacioService {
         ])
 
         if (asignaciones > 0 || tarifas > 0) {
-            throw new AppError(409, MENSAJES_ESPACIO.ESPACIO_CON_DEPENDENCIAS)
+            throw new AppError(409, MENSAJES.ESPACIO_CON_DEPENDENCIAS)
         }
 
         await espacio.destroy()
@@ -270,7 +236,3 @@ export class EspacioService {
 }
 
 export const espacioService = new EspacioService()
-
-export { obtenerOcupacion }
-
-export default obtenerOcupacion

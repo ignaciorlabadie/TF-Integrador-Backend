@@ -1,38 +1,14 @@
 import type { NextFunction, Request, Response } from 'express'
-
 import { asignacionEspacioService } from '../services/asignacionEspacioService.js'
 import type {
     DatosAsignacionEspacio,
     ListarAsignacionesEspacioFiltros,
 } from '../services/asignacionEspacioService.js'
 import { AppError } from '../errors/AppError.js'
-import { DIAS_SEMANA } from '../types/DiaSemana.js'
-import type { DiaSemana } from '../types/DiaSemana.js'
-import { TIPOS_ASIGNACION } from '../types/TipoAsignacionEspacio.js'
-import type { TipoAsignacionEspacio } from '../types/TipoAsignacionEspacio.js'
-import { HORA_REGEX_HHMM } from '../utils/horarios.js'
-import { esFechaValida } from '../utils/validacion.js'
-import { validarId } from '../utils/validarId.js'
 import { MENSAJES } from '../errors/mensajes.js'
+import { esTipoAsignacionValido } from '../utils/validacionesEntidades.js'
+import { validarId } from '../utils/validarId.js'
 import { profesionalService } from '../services/profesionalService.js'
-
-function esTipoValido(valor: unknown): valor is TipoAsignacionEspacio {
-    return (
-        typeof valor === 'string' &&
-        (TIPOS_ASIGNACION as readonly string[]).includes(valor)
-    )
-}
-
-function esDiaSemanaValido(valor: unknown): valor is DiaSemana {
-    return (
-        typeof valor === 'string' &&
-        (DIAS_SEMANA as readonly string[]).includes(valor)
-    )
-}
-
-function esHoraValida(valor: unknown): valor is string {
-    return typeof valor === 'string' && HORA_REGEX_HHMM.test(valor)
-}
 
 function validarDatosAsignacion(body: Request['body']): DatosAsignacionEspacio {
     const datos = body ?? {}
@@ -59,56 +35,14 @@ function validarDatosAsignacion(body: Request['body']): DatosAsignacionEspacio {
         )
     }
 
-    const idEspacio = validarId(espacioId, 'espacioId')
-    const idProfesional = validarId(profesionalId, 'profesionalId')
-
-    if (!esTipoValido(tipo)) {
-        throw new AppError(400, 'El tipo de asignación no es válido')
-    }
-
-    if (!esHoraValida(horaInicio) || !esHoraValida(horaFin)) {
-        throw new AppError(400, 'Las horas deben tener un formato válido HH:mm')
-    }
-
-    if (tipo === 'FIJA') {
-        if (!esDiaSemanaValido(diaSemana)) {
-            throw new AppError(400, 'El día de la semana no es válido')
-        }
-
-        if (fecha !== null && fecha !== undefined) {
-            throw new AppError(400, 'Una asignación FIJA no puede tener fecha')
-        }
-
-        return {
-            espacioId: idEspacio,
-            profesionalId: idProfesional,
-            tipo,
-            diaSemana,
-            fecha: null,
-            horaInicio,
-            horaFin,
-        }
-    }
-
-    if (typeof fecha !== 'string' || !esFechaValida(fecha)) {
-        throw new AppError(400, 'La fecha debe tener formato YYYY-MM-DD')
-    }
-
-    if (diaSemana !== null && diaSemana !== undefined) {
-        throw new AppError(
-            400,
-            'Una asignación ESPECIFICA no puede tener día de semana',
-        )
-    }
-
     return {
-        espacioId: idEspacio,
-        profesionalId: idProfesional,
+        espacioId: validarId(espacioId, 'espacioId'),
+        profesionalId: validarId(profesionalId, 'profesionalId'),
         tipo,
-        diaSemana: null,
-        fecha,
         horaInicio,
         horaFin,
+        ...(diaSemana !== undefined ? { diaSemana } : {}),
+        ...(fecha !== undefined ? { fecha } : {}),
     }
 }
 
@@ -146,11 +80,8 @@ export class AsignacionEspacioController {
             }
 
             if (tipo !== undefined) {
-                if (!esTipoValido(tipo)) {
-                    throw new AppError(
-                        400,
-                        'El tipo de asignación no es válido',
-                    )
+                if (!esTipoAsignacionValido(tipo)) {
+                    throw new AppError(400, MENSAJES.TIPO_ASIGNACION_INVALIDO)
                 }
 
                 filtros.tipo = tipo
@@ -200,7 +131,7 @@ export class AsignacionEspacioController {
             if (req.usuario?.rol === 'PROFESIONAL') {
                 const profesional = await obtenerProfesionalDelUsuario(req)
 
-                if (datos.tipo !== 'ESPECIFICA') {
+                if (datos.tipo === 'FIJA') {
                     throw new AppError(403, MENSAJES.SIN_PERMISOS)
                 }
 
@@ -231,7 +162,7 @@ export class AsignacionEspacioController {
                 if (
                     existente.profesionalId !== profesional.id ||
                     existente.tipo !== 'ESPECIFICA' ||
-                    datos.tipo !== 'ESPECIFICA'
+                    datos.tipo === 'FIJA'
                 ) {
                     throw new AppError(403, MENSAJES.SIN_PERMISOS)
                 }
