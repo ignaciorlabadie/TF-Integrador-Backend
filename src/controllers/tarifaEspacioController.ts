@@ -84,6 +84,10 @@ export class TarifaEspacioController {
         try {
             const id = validarId(req.params.id)
 
+            if (!req.body || Object.keys(req.body).length === 0) {
+                throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
+            }
+
             const tarifa = await tarifaEspacioService.actualizar(
                 id,
                 req.body,
