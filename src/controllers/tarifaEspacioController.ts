@@ -57,14 +57,19 @@ export class TarifaEspacioController {
 
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
-            const datos = req.body ?? {}
+            const body = req.body ?? {}
 
             if (
-                datos.espacioId === undefined ||
-                datos.precioPorHora === undefined ||
-                datos.fechaDesde === undefined
+                body.espacioId === undefined ||
+                body.precioPorHora === undefined ||
+                body.fechaDesde === undefined
             ) {
                 throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
+            }
+
+            const datos = {
+                ...body,
+                espacioId: validarId(body.espacioId, 'espacioId'),
             }
 
             const tarifa = await tarifaEspacioService.crear(datos)
