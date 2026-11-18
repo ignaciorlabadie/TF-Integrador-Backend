@@ -482,3 +482,18 @@ describe('tarifaEspacioService.actualizar', () => {
         expect(resultado).toEqual(tarifa)
     })
 })
+
+describe('tarifaEspacioService.eliminar', () => {
+    it('debe permitir eliminar la tarifa vigente', async () => {
+        vi.mocked(tarifaEspaciosModel.findByPk).mockResolvedValue(
+            tarifa as never,
+        )
+        vi.mocked(tarifaEspaciosModel.destroy).mockResolvedValue(1 as never)
+
+        await tarifaEspacioService.eliminar(tarifa.id)
+
+        expect(tarifaEspaciosModel.destroy).toHaveBeenCalledWith({
+            where: { id: tarifa.id },
+        })
+    })
+})

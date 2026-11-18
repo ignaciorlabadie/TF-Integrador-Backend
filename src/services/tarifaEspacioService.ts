@@ -223,6 +223,18 @@ export class TarifaEspacioService {
 
         return this.buscarPorId(idValidado)
     }
+
+    async eliminar(id: number): Promise<void> {
+        const idValidado = validarEnteroPositivo(id, 'ID de la tarifa')
+
+        const existente = await TarifaEspacios.findByPk(idValidado)
+
+        if (!existente) {
+            throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+        }
+
+        await TarifaEspacios.destroy({ where: { id: idValidado } })
+    }
 }
 
 export const tarifaEspacioService = new TarifaEspacioService()
