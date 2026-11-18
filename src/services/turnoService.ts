@@ -187,8 +187,7 @@ export class TurnoService {
 
         const fechaCambio =
             datos.fecha !== undefined && datos.fecha !== turno.fecha
-        const horaCambio =
-            datos.hora !== undefined && datos.hora !== turno.hora
+        const horaCambio = datos.hora !== undefined && datos.hora !== turno.hora
 
         if (datos.fecha !== undefined) {
             turno.fecha = datos.fecha
