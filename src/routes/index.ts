@@ -9,6 +9,7 @@ import estudioRoutes from './estudioRoutes.js'
 import autorizacionEstudioRoutes from './autorizacionEstudioRoutes.js'
 import espacioRoutes from './espacioRoutes.js'
 import asignacionEspacioRoutes from './asignacionesEspacioRoutes.js'
+import tarifaEspacioRoutes from './tarifaEspacioRoutes.js'
 import agendaRoutes from './agendaRoutes.js'
 import turnoRoutes from './turnoRoutes.js'
 
@@ -24,6 +25,7 @@ router.use('/auth', authRoutes)
 router.use('/usuarios', usuarioRoutes)
 router.use('/espacios', espacioRoutes)
 router.use('/asignaciones-espacio', asignacionEspacioRoutes)
+router.use('/tarifas-espacio', tarifaEspacioRoutes)
 router.use('/pacientes', pacienteRoutes)
 router.use('/profesionales', profesionalRoutes)
 router.use('/roles', rolRoutes)
