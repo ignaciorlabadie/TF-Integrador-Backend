@@ -77,4 +77,5 @@ export const MENSAJES = {
         'El precio por hora debe ser un número mayor a 0 con hasta 2 decimales',
     TARIFA_SOLAPADA:
         'La tarifa se superpone con otra existente para el mismo espacio y rango de fechas',
+    TARIFA_NO_ENCONTRADA: 'Tarifa no encontrada',
 } as const

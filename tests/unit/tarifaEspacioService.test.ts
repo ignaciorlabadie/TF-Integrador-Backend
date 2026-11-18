@@ -134,9 +134,9 @@ describe('tarifaEspacioService.listar', () => {
 
 describe('tarifaEspacioService.buscarPorId', () => {
     it('debe rechazar un ID inválido con 400', async () => {
-        await expect(
-            tarifaEspacioService.buscarPorId(0),
-        ).rejects.toMatchObject({ statusCode: 400 })
+        await expect(tarifaEspacioService.buscarPorId(0)).rejects.toMatchObject(
+            { statusCode: 400 },
+        )
         expect(tarifaEspaciosModel.findByPk).not.toHaveBeenCalled()
     })
 
@@ -449,5 +449,36 @@ describe('tarifaEspacioService.crear - solapamiento', () => {
         expect(tarifaEspaciosModel.findAll).toHaveBeenCalledWith(
             expect.objectContaining({ where: { espacioId: 10 } }),
         )
+    })
+})
+
+describe('tarifaEspacioService.actualizar', () => {
+    it('debe actualizar la tarifa excluyéndose a sí misma del solapamiento', async () => {
+        vi.mocked(tarifaEspaciosModel.findByPk)
+            .mockResolvedValueOnce(tarifa as never)
+            .mockResolvedValueOnce(tarifa as never)
+        vi.mocked(espacioModel.findByPk).mockResolvedValue(espacio as never)
+        vi.mocked(tarifaEspaciosModel.findAll).mockResolvedValue([
+            tarifa,
+        ] as never)
+        vi.mocked(tarifaEspaciosModel.update).mockResolvedValue([1] as never)
+
+        const resultado = await tarifaEspacioService.actualizar(1, datosBase)
+
+        expect(tarifaEspaciosModel.findAll).toHaveBeenCalledWith(
+            expect.objectContaining({
+                where: { espacioId: 10, id: { [Op.ne]: 1 } },
+            }),
+        )
+        expect(tarifaEspaciosModel.update).toHaveBeenCalledWith(
+            {
+                espacioId: 10,
+                precioPorHora: '1500.50',
+                fechaDesde: '2026-01-01',
+                fechaHasta: null,
+            },
+            { where: { id: 1 } },
+        )
+        expect(resultado).toEqual(tarifa)
     })
 })

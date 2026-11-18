@@ -103,14 +103,18 @@ async function verificarSolapamiento(
 
     const candidatas = await TarifaEspacios.findAll({ where })
 
-    const conflicto = candidatas.some((candidata) =>
-        haySolapamiento(
+    const conflicto = candidatas.some((candidata) => {
+        if (idExcluir !== undefined && candidata.id === idExcluir) {
+            return false
+        }
+
+        return haySolapamiento(
             datos.fechaDesde,
             datos.fechaHasta,
             candidata.fechaDesde,
             candidata.fechaHasta,
-        ),
-    )
+        )
+    })
 
     if (conflicto) {
         throw new AppError(409, MENSAJES.TARIFA_SOLAPADA)
@@ -179,6 +183,45 @@ export class TarifaEspacioService {
         })
 
         return this.buscarPorId(tarifa.id)
+    }
+
+    async actualizar(
+        id: number,
+        datos: DatosTarifaEspacio,
+    ): Promise<TarifaEspacios | null> {
+        const idValidado = validarEnteroPositivo(id, 'ID de la tarifa')
+
+        const existente = await TarifaEspacios.findByPk(idValidado)
+
+        if (!existente) {
+            throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+        }
+
+        const datosValidados = validarDatosCreacion(datos)
+
+        const espacio = await Espacio.findByPk(datosValidados.espacioId)
+
+        if (!espacio) {
+            throw new AppError(404, MENSAJES.ESPACIO_NO_ENCONTRADO)
+        }
+
+        if (!espacio.activo) {
+            throw new AppError(409, MENSAJES.ESPACIO_INACTIVO)
+        }
+
+        await verificarSolapamiento(datosValidados, idValidado)
+
+        await TarifaEspacios.update(
+            {
+                espacioId: datosValidados.espacioId,
+                precioPorHora: datosValidados.precioPorHora,
+                fechaDesde: datosValidados.fechaDesde,
+                fechaHasta: datosValidados.fechaHasta,
+            },
+            { where: { id: idValidado } },
+        )
+
+        return this.buscarPorId(idValidado)
     }
 }
 
