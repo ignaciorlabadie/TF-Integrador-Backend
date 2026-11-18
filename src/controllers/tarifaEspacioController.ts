@@ -79,6 +79,21 @@ export class TarifaEspacioController {
             return next(error)
         }
     }
+
+    async actualizar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            const tarifa = await tarifaEspacioService.actualizar(
+                id,
+                req.body,
+            )
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const tarifaEspacioController = new TarifaEspacioController()

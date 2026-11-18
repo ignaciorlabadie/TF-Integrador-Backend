@@ -150,3 +150,26 @@ describe('tarifaEspacioController.crear', () => {
     })
 })
 
+describe('tarifaEspacioController.actualizar', () => {
+    it('debe responder 200 con la tarifa actualizada', async () => {
+        vi.mocked(tarifaEspacioService.actualizar).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const datos = {
+            espacioId: 10,
+            precioPorHora: '1600.00',
+            fechaDesde: '2026-01-01',
+            fechaHasta: null,
+        }
+
+        const { req, res, next } = crearMocks(datos, { id: '1' })
+
+        await tarifaEspacioController.actualizar(req, res, next)
+
+        expect(tarifaEspacioService.actualizar).toHaveBeenCalledWith(1, datos)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(tarifa)
+        expect(next).not.toHaveBeenCalled()
+    })
+})
