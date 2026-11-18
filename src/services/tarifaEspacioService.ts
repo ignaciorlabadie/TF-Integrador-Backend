@@ -161,6 +161,16 @@ export class TarifaEspacioService {
         )
     }
 
+    async obtenerVigente(espacioId: number): Promise<TarifaEspacios | null> {
+        return TarifaEspacios.findOne({
+            where: {
+                espacioId: validarEnteroPositivo(espacioId, 'ID del espacio'),
+                fechaHasta: { [Op.is]: null },
+            },
+            include: incluirEspacio(),
+        })
+    }
+
     async crear(datos: DatosTarifaEspacio): Promise<TarifaEspacios | null> {
         const datosValidados = validarDatosCreacion(datos)
         const espacio = await Espacio.findByPk(datosValidados.espacioId)

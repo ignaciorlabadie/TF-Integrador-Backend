@@ -497,3 +497,25 @@ describe('tarifaEspacioService.eliminar', () => {
         })
     })
 })
+
+describe('tarifaEspacioService.obtenerVigente', () => {
+    it('debe retornar la tarifa vigente del espacio incluyendo el espacio', async () => {
+        vi.mocked(tarifaEspaciosModel.findOne).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const resultado = await tarifaEspacioService.obtenerVigente(10)
+
+        expect(tarifaEspaciosModel.findOne).toHaveBeenCalledWith({
+            where: { espacioId: 10, fechaHasta: { [Op.is]: null } },
+            include: [
+                {
+                    model: espacioModel,
+                    as: 'espacio',
+                    attributes: ['id', 'nombre', 'tipo', 'ubicacion', 'activo'],
+                },
+            ],
+        })
+        expect(resultado).toEqual(tarifa)
+    })
+})
