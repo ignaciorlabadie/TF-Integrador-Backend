@@ -108,4 +108,16 @@ describe('tarifaEspacioController.crear', () => {
         expect(res.json).toHaveBeenCalledWith(tarifa)
         expect(next).not.toHaveBeenCalled()
     })
+
+    it('debe responder 400 si el body está vacío', async () => {
+        const { req, res, next } = crearMocks()
+
+        await tarifaEspacioController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.crear).not.toHaveBeenCalled()
+    })
 })
+

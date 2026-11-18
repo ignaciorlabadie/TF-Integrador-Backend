@@ -57,6 +57,10 @@ export class TarifaEspacioController {
 
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
+            if (!req.body || Object.keys(req.body).length === 0) {
+                throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
+            }
+
             const tarifa = await tarifaEspacioService.crear(req.body)
 
             return res.status(201).json(tarifa)
