@@ -185,12 +185,21 @@ export class TurnoService {
             }
         }
 
+        const fechaCambio =
+            datos.fecha !== undefined && datos.fecha !== turno.fecha
+        const horaCambio =
+            datos.hora !== undefined && datos.hora !== turno.hora
+
         if (datos.fecha !== undefined) {
             turno.fecha = datos.fecha
         }
 
         if (datos.hora !== undefined) {
             turno.hora = datos.hora
+        }
+
+        if (fechaCambio || horaCambio) {
+            turno.recordatorioEnviadoAt = null
         }
 
         if (datos.motivo !== undefined) {
