@@ -54,6 +54,16 @@ export class TarifaEspacioController {
             return next(error)
         }
     }
+
+    async crear(req: Request, res: Response, next: NextFunction) {
+        try {
+            const tarifa = await tarifaEspacioService.crear(req.body)
+
+            return res.status(201).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const tarifaEspacioController = new TarifaEspacioController()
