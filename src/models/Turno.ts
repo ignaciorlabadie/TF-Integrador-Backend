@@ -17,6 +17,7 @@ class Turno extends Model {
     declare estado: EstadoTurno
     declare motivo: string
     declare observaciones?: string | null
+    declare recordatorioEnviadoAt: Date | null
 
     declare createdAt: Date
     declare updatedAt: Date
@@ -96,6 +97,12 @@ Turno.init(
         observaciones: {
             type: DataTypes.TEXT,
             allowNull: true,
+        },
+
+        recordatorioEnviadoAt: {
+            type: DataTypes.DATE,
+            allowNull: true,
+            defaultValue: null,
         },
     },
     {
