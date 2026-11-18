@@ -1,6 +1,10 @@
 import 'dotenv/config'
 import app from './app.js'
 import sequelize from './config/database.js'
+import {
+    detenerRecordatoriosTurnos,
+    iniciarRecordatoriosTurnos,
+} from './services/recordatorioTurnoService.js'
 
 const PORT = process.env.PORT || 3000
 
@@ -8,6 +12,7 @@ let server: ReturnType<typeof app.listen> | null = null
 
 const shutdown = async (signal: string, exitCode = 0) => {
     console.log(`Señal ${signal} recibida. Iniciando apagado`)
+    detenerRecordatoriosTurnos()
     if (server) {
         await new Promise<void>((resolve) => server!.close(() => resolve()))
     }
@@ -19,6 +24,7 @@ sequelize
     .authenticate()
     .then(() => {
         console.log('Base de datos conectada')
+        iniciarRecordatoriosTurnos()
         server = app.listen(PORT, () => {
             console.log(
                 `Servidor del sistema de turnos corriendo en puerto ${PORT}`,
