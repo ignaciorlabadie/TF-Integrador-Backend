@@ -187,3 +187,40 @@ export async function enviarEmailTurnoCancelado(
         textContent: texto,
     })
 }
+
+export async function enviarEmailTurnoRecordatorio(
+    email: string,
+    nombre: string,
+    fecha: string,
+    hora: string,
+    profesional: string,
+): Promise<void> {
+    const texto = [
+        `Hola ${nombre},`,
+        '',
+        'Te recordamos que tenés un turno en las próximas 24 horas:',
+        `Fecha: ${fecha}`,
+        `Hora: ${hora}`,
+        `Profesional: ${profesional}`,
+        '',
+        'Si no podés asistir, por favor gestioná la cancelación con anticipación.',
+    ].join('\n')
+
+    const html = `
+        <p>Hola ${nombre},</p>
+        <p>Te recordamos que tenés un turno en las próximas 24 horas:</p>
+        <ul>
+            <li><strong>Fecha:</strong> ${fecha}</li>
+            <li><strong>Hora:</strong> ${hora}</li>
+            <li><strong>Profesional:</strong> ${profesional}</li>
+        </ul>
+        <p>Si no podés asistir, por favor gestioná la cancelación con anticipación.</p>
+    `.trim()
+
+    await enviarConBrevo({
+        to: email,
+        subject: 'Recordatorio de turno',
+        htmlContent: html,
+        textContent: texto,
+    })
+}
