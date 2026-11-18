@@ -88,9 +88,7 @@ describe('tarifaEspacioController.buscarPorId', () => {
 
 describe('tarifaEspacioController.crear', () => {
     it('debe responder 201 con la tarifa creada', async () => {
-        vi.mocked(tarifaEspacioService.crear).mockResolvedValue(
-            tarifa as never,
-        )
+        vi.mocked(tarifaEspacioService.crear).mockResolvedValue(tarifa as never)
 
         const datos = {
             espacioId: 10,
@@ -228,6 +226,23 @@ describe('tarifaEspacioController.eliminar', () => {
         expect(tarifaEspacioService.eliminar).toHaveBeenCalledWith(1)
         expect(res.status).toHaveBeenCalledWith(204)
         expect(res.send).toHaveBeenCalled()
+        expect(next).not.toHaveBeenCalled()
+    })
+})
+
+describe('tarifaEspacioController.obtenerVigente', () => {
+    it('debe responder 200 con la tarifa vigente del espacio', async () => {
+        vi.mocked(tarifaEspacioService.obtenerVigente).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const { req, res, next } = crearMocks({}, {}, { espacioId: '10' })
+
+        await tarifaEspacioController.obtenerVigente(req, res, next)
+
+        expect(tarifaEspacioService.obtenerVigente).toHaveBeenCalledWith(10)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(tarifa)
         expect(next).not.toHaveBeenCalled()
     })
 })

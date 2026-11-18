@@ -122,6 +122,22 @@ export class TarifaEspacioController {
             return next(error)
         }
     }
+
+    async obtenerVigente(req: Request, res: Response, next: NextFunction) {
+        try {
+            const espacioId = validarId(req.query.espacioId, 'espacioId')
+
+            const tarifa = await tarifaEspacioService.obtenerVigente(espacioId)
+
+            if (!tarifa) {
+                throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+            }
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const tarifaEspacioController = new TarifaEspacioController()
