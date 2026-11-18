@@ -119,5 +119,19 @@ describe('tarifaEspacioController.crear', () => {
         )
         expect(tarifaEspacioService.crear).not.toHaveBeenCalled()
     })
+
+    it('debe responder 400 si falta fechaDesde', async () => {
+        const { req, res, next } = crearMocks({
+            espacioId: 10,
+            precioPorHora: '1500.50',
+        })
+
+        await tarifaEspacioController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.crear).not.toHaveBeenCalled()
+    })
 })
 

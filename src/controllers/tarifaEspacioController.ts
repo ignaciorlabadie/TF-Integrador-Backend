@@ -57,11 +57,17 @@ export class TarifaEspacioController {
 
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
-            if (!req.body || Object.keys(req.body).length === 0) {
+            const datos = req.body ?? {}
+
+            if (
+                datos.espacioId === undefined ||
+                datos.precioPorHora === undefined ||
+                datos.fechaDesde === undefined
+            ) {
                 throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
             }
 
-            const tarifa = await tarifaEspacioService.crear(req.body)
+            const tarifa = await tarifaEspacioService.crear(datos)
 
             return res.status(201).json(tarifa)
         } catch (error) {
