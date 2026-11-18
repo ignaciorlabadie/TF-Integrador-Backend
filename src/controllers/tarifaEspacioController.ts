@@ -88,10 +88,17 @@ export class TarifaEspacioController {
                 throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
             }
 
-            const tarifa = await tarifaEspacioService.actualizar(
-                id,
-                req.body,
-            )
+            const datos = req.body
+
+            if (
+                datos.espacioId === undefined ||
+                datos.precioPorHora === undefined ||
+                datos.fechaDesde === undefined
+            ) {
+                throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
+            }
+
+            const tarifa = await tarifaEspacioService.actualizar(id, datos)
 
             return res.status(200).json(tarifa)
         } catch (error) {
