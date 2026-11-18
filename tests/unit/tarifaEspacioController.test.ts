@@ -68,3 +68,20 @@ describe('tarifaEspacioController.listar', () => {
         expect(next).not.toHaveBeenCalled()
     })
 })
+
+describe('tarifaEspacioController.buscarPorId', () => {
+    it('debe responder 200 con la tarifa', async () => {
+        vi.mocked(tarifaEspacioService.buscarPorId).mockResolvedValue(
+            tarifa as never,
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '1' })
+
+        await tarifaEspacioController.buscarPorId(req, res, next)
+
+        expect(tarifaEspacioService.buscarPorId).toHaveBeenCalledWith(1)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(tarifa)
+        expect(next).not.toHaveBeenCalled()
+    })
+})

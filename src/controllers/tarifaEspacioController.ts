@@ -38,6 +38,22 @@ export class TarifaEspacioController {
             return next(error)
         }
     }
+
+    async buscarPorId(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            const tarifa = await tarifaEspacioService.buscarPorId(id)
+
+            if (!tarifa) {
+                throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+            }
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const tarifaEspacioController = new TarifaEspacioController()
