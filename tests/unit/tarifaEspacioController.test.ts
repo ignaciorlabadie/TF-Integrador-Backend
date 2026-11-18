@@ -67,6 +67,63 @@ describe('tarifaEspacioController.listar', () => {
         expect(res.json).toHaveBeenCalledWith([tarifa])
         expect(next).not.toHaveBeenCalled()
     })
+
+    it('debe responder 200 sin filtros', async () => {
+        vi.mocked(tarifaEspacioService.listar).mockResolvedValue([] as never)
+
+        const { req, res, next } = crearMocks()
+
+        await tarifaEspacioController.listar(req, res, next)
+
+        expect(tarifaEspacioService.listar).toHaveBeenCalledWith({})
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith([])
+    })
+
+    it('debe parsear vigente=false', async () => {
+        vi.mocked(tarifaEspacioService.listar).mockResolvedValue([] as never)
+
+        const { req, res, next } = crearMocks({}, {}, { vigente: 'false' })
+
+        await tarifaEspacioController.listar(req, res, next)
+
+        expect(tarifaEspacioService.listar).toHaveBeenCalledWith({
+            vigente: false,
+        })
+    })
+
+    it('debe responder 400 si espacioId es inválido', async () => {
+        const { req, res, next } = crearMocks({}, {}, { espacioId: 'abc' })
+
+        await tarifaEspacioController.listar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.listar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si vigente no es true o false', async () => {
+        const { req, res, next } = crearMocks({}, {}, { vigente: 'quizas' })
+
+        await tarifaEspacioController.listar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.listar).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar un error inesperado', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(tarifaEspacioService.listar).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks()
+
+        await tarifaEspacioController.listar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+    })
 })
 
 describe('tarifaEspacioController.buscarPorId', () => {
@@ -83,6 +140,29 @@ describe('tarifaEspacioController.buscarPorId', () => {
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith(tarifa)
         expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si el ID es inválido', async () => {
+        const { req, res, next } = crearMocks({}, { id: 'abc' })
+
+        await tarifaEspacioController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.buscarPorId).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si la tarifa no existe', async () => {
+        vi.mocked(tarifaEspacioService.buscarPorId).mockResolvedValue(null)
+
+        const { req, res, next } = crearMocks({}, { id: '999' })
+
+        await tarifaEspacioController.buscarPorId(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
     })
 })
 
@@ -213,6 +293,24 @@ describe('tarifaEspacioController.actualizar', () => {
         )
         expect(tarifaEspacioService.actualizar).not.toHaveBeenCalled()
     })
+
+    it('debe responder 400 si el ID es inválido', async () => {
+        const { req, res, next } = crearMocks(
+            {
+                espacioId: 10,
+                precioPorHora: '1600.00',
+                fechaDesde: '2026-01-01',
+            },
+            { id: 'abc' },
+        )
+
+        await tarifaEspacioController.actualizar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.actualizar).not.toHaveBeenCalled()
+    })
 })
 
 describe('tarifaEspacioController.eliminar', () => {
@@ -227,6 +325,17 @@ describe('tarifaEspacioController.eliminar', () => {
         expect(res.status).toHaveBeenCalledWith(204)
         expect(res.send).toHaveBeenCalled()
         expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 400 si el ID es inválido', async () => {
+        const { req, res, next } = crearMocks({}, { id: 'abc' })
+
+        await tarifaEspacioController.eliminar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.eliminar).not.toHaveBeenCalled()
     })
 })
 
@@ -244,5 +353,28 @@ describe('tarifaEspacioController.obtenerVigente', () => {
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith(tarifa)
         expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si no hay tarifa vigente', async () => {
+        vi.mocked(tarifaEspacioService.obtenerVigente).mockResolvedValue(null)
+
+        const { req, res, next } = crearMocks({}, {}, { espacioId: '10' })
+
+        await tarifaEspacioController.obtenerVigente(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+    })
+
+    it('debe responder 400 si espacioId es inválido', async () => {
+        const { req, res, next } = crearMocks({}, {}, { espacioId: 'abc' })
+
+        await tarifaEspacioController.obtenerVigente(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(tarifaEspacioService.obtenerVigente).not.toHaveBeenCalled()
     })
 })
