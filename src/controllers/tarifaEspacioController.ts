@@ -110,6 +110,18 @@ export class TarifaEspacioController {
             return next(error)
         }
     }
+
+    async eliminar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            await tarifaEspacioService.eliminar(id)
+
+            return res.status(204).send()
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const tarifaEspacioController = new TarifaEspacioController()

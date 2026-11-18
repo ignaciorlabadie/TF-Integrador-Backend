@@ -216,3 +216,18 @@ describe('tarifaEspacioController.actualizar', () => {
         expect(tarifaEspacioService.actualizar).not.toHaveBeenCalled()
     })
 })
+
+describe('tarifaEspacioController.eliminar', () => {
+    it('debe responder 204', async () => {
+        vi.mocked(tarifaEspacioService.eliminar).mockResolvedValue(undefined)
+
+        const { req, res, next } = crearMocks({}, { id: '1' })
+
+        await tarifaEspacioController.eliminar(req, res, next)
+
+        expect(tarifaEspacioService.eliminar).toHaveBeenCalledWith(1)
+        expect(res.status).toHaveBeenCalledWith(204)
+        expect(res.send).toHaveBeenCalled()
+        expect(next).not.toHaveBeenCalled()
+    })
+})
