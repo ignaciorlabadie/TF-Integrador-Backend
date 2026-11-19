@@ -1,17 +1,24 @@
 # Documentación de la API
 
-Documentación de los módulos de **autenticación**, **usuarios**, **pacientes** y
-**roles** del Sistema de Turnos.
+Documentación de todos los módulos del Sistema de Turnos.
 
 ## Documentos
 
-| Documento                            | Contenido                                                     |
-| ------------------------------------ | ------------------------------------------------------------- |
-| [auth.md](./auth.md)                 | Login, perfil autenticado y recuperación de contraseña        |
-| [usuarios.md](./usuarios.md)         | Alta y gestión de cuentas (`users`)                           |
-| [pacientes.md](./pacientes.md)       | Registro público, perfil propio y administración de pacientes |
-| [roles.md](./roles.md)               | Catálogo de roles disponibles                                 |
-| [modelo-datos.md](./modelo-datos.md) | Tablas `users` y `pacientes`, relaciones y diagrama ER        |
+| Documento                                                | Contenido                                                     |
+| -------------------------------------------------------- | ------------------------------------------------------------- |
+| [auth.md](./auth.md)                                     | Login, perfil autenticado y recuperación de contraseña        |
+| [usuarios.md](./usuarios.md)                             | Alta y gestión de cuentas (`users`)                           |
+| [pacientes.md](./pacientes.md)                           | Registro público, perfil propio y administración de pacientes |
+| [roles.md](./roles.md)                                   | Catálogo de roles disponibles                                 |
+| [profesionales.md](./profesionales.md)                   | Perfiles profesionales y su cuenta asociada                   |
+| [turnos.md](./turnos.md)                                 | Creación, actualización y cancelación de turnos               |
+| [agendas.md](./agendas.md)                               | Disponibilidad semanal de los profesionales                   |
+| [espacios.md](./espacios.md)                             | Espacios físicos y su ocupación                               |
+| [asignaciones-espacio.md](./asignaciones-espacio.md)     | Asignaciones fijas y específicas de espacios                  |
+| [tarifas-espacio.md](./tarifas-espacio.md)               | Tarifas por hora y vigencia                                   |
+| [estudios.md](./estudios.md)                             | Estudios médicos, archivos y URL firmada                      |
+| [autorizaciones-estudio.md](./autorizaciones-estudio.md) | Autorizaciones de acceso a estudios por profesional           |
+| [modelo-datos.md](./modelo-datos.md)                     | Tablas del sistema, relaciones y diagrama ER                  |
 
 ## Convenciones
 

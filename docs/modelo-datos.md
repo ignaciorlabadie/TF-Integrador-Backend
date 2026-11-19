@@ -1,7 +1,8 @@
-# Modelo de datos: usuarios y pacientes
+# Modelo de datos
 
-Este documento describe las tablas involucradas en los módulos de usuarios y
-pacientes: `users` y `pacientes`.
+Este documento describe las tablas del sistema: `users`, `pacientes`,
+`profesionales`, `espacios`, `asignaciones_espacios`, `tarifas_espacios`,
+`agendas`, `turnos`, `estudios` y `autorizaciones_estudio`.
 
 ## Diagrama ER
 
@@ -112,15 +113,171 @@ La FK `ON DELETE RESTRICT` de `pacientes.usuarioId` protege la cuenta: si se
 intentara borrar el usuario primero, la base rechazaría la operación. Por eso
 el orden de borrado es paciente y luego usuario.
 
+## Resto de tablas
+
+```mermaid
+erDiagram
+    USERS ||--o| PROFESIONALES : "tiene perfil"
+    PROFESIONALES ||--o{ AGENDAS : "define disponibilidad"
+    PROFESIONALES ||--o{ ASIGNACIONES_ESPACIOS : "usa espacios"
+    PROFESIONALES ||--o{ AUTORIZACIONES_ESTUDIO : "accede a estudios"
+    ESPACIOS ||--o{ ASIGNACIONES_ESPACIOS : "se asigna"
+    ESPACIOS ||--o{ TARIFAS_ESPACIOS : "tiene precios"
+    AGENDAS ||--o{ TURNOS : "da lugar a"
+    PACIENTES ||--o{ TURNOS : "reserva"
+    PACIENTES ||--o{ ESTUDIOS : "posee"
+    ESTUDIOS ||--o{ AUTORIZACIONES_ESTUDIO : "autoriza"
+```
+
+### Tabla `profesionales`
+
+Implementada en `src/models/Profesional.ts`.
+
+| Campo          | Tipo           | Nulo | Default         | Restricciones                          |
+| -------------- | -------------- | ---- | --------------- | -------------------------------------- |
+| `id`           | `INTEGER`      | No   | Autoincremental | PK                                     |
+| `usuarioId`    | `INTEGER`      | No   | —               | Único; FK a `users.id`                 |
+| `nombre`       | `VARCHAR(100)` | No   | —               | Entre 2 y 100 caracteres               |
+| `apellido`     | `VARCHAR(100)` | No   | —               | Entre 2 y 100 caracteres               |
+| `dni`          | `VARCHAR(10)`  | No   | —               | Único; entre 7 y 8 dígitos             |
+| `telefono`     | `VARCHAR(25)`  | No   | —               | Entre 6 y 25 dígitos, con `+` opcional |
+| `matricula`    | `VARCHAR(30)`  | No   | —               | Única; entre 1 y 30 caracteres         |
+| `especialidad` | `VARCHAR(100)` | No   | —               | Entre 2 y 100 caracteres               |
+| `createdAt`    | `TIMESTAMP`    | No   | Automático      | —                                      |
+| `updatedAt`    | `TIMESTAMP`    | No   | Automático      | —                                      |
+
+### Tabla `espacios`
+
+Implementada en `src/models/Espacio.ts`.
+
+| Campo       | Tipo           | Nulo | Default         | Restricciones              |
+| ----------- | -------------- | ---- | --------------- | -------------------------- |
+| `id`        | `INTEGER`      | No   | Autoincremental | PK                         |
+| `nombre`    | `VARCHAR(100)` | No   | —               | Entre 1 y 100 caracteres   |
+| `tipo`      | `ENUM`         | No   | —               | `GIMNASIO` o `CONSULTORIO` |
+| `ubicacion` | `ENUM`         | No   | —               | `ADELANTE` o `ATRAS`       |
+| `activo`    | `BOOLEAN`      | No   | `true`          | —                          |
+| `createdAt` | `TIMESTAMP`    | No   | Automático      | —                          |
+| `updatedAt` | `TIMESTAMP`    | No   | Automático      | —                          |
+
+### Tabla `asignaciones_espacios`
+
+Implementada en `src/models/AsignacionEspacio.ts`.
+
+| Campo           | Tipo        | Nulo | Default         | Restricciones                              |
+| --------------- | ----------- | ---- | --------------- | ------------------------------------------ |
+| `id`            | `INTEGER`   | No   | Autoincremental | PK                                         |
+| `espacioId`     | `INTEGER`   | No   | —               | FK a `espacios.id`                         |
+| `profesionalId` | `INTEGER`   | No   | —               | FK a `profesionales.id`                    |
+| `tipo`          | `ENUM`      | No   | —               | `FIJA` o `ESPECIFICA`                      |
+| `diaSemana`     | `ENUM`      | Sí   | `NULL`          | Obligatorio si `FIJA`; `LUNES` a `DOMINGO` |
+| `fecha`         | `DATEONLY`  | Sí   | `NULL`          | Obligatorio si `ESPECIFICA`; `YYYY-MM-DD`  |
+| `horaInicio`    | `TIME`      | No   | —               | `HH:mm`; menor que `horaFin`               |
+| `horaFin`       | `TIME`      | No   | —               | `HH:mm`                                    |
+| `createdAt`     | `TIMESTAMP` | No   | Automático      | —                                          |
+| `updatedAt`     | `TIMESTAMP` | No   | Automático      | —                                          |
+
+### Tabla `tarifas_espacios`
+
+Implementada en `src/models/TarifaEspacio.ts`.
+
+| Campo           | Tipo            | Nulo | Default         | Restricciones                |
+| --------------- | --------------- | ---- | --------------- | ---------------------------- |
+| `id`            | `INTEGER`       | No   | Autoincremental | PK                           |
+| `espacioId`     | `INTEGER`       | No   | —               | FK a `espacios.id`           |
+| `precioPorHora` | `DECIMAL(10,2)` | No   | —               | Precio ≥ 0                   |
+| `fechaDesde`    | `DATEONLY`      | No   | —               | `YYYY-MM-DD`                 |
+| `fechaHasta`    | `DATEONLY`      | Sí   | `NULL`          | `NULL` indica tarifa vigente |
+| `createdAt`     | `TIMESTAMP`     | No   | Automático      | —                            |
+| `updatedAt`     | `TIMESTAMP`     | No   | Automático      | —                            |
+
+### Tabla `agendas`
+
+Implementada en `src/models/Agenda.ts`.
+
+| Campo           | Tipo        | Nulo | Default         | Restricciones                   |
+| --------------- | ----------- | ---- | --------------- | ------------------------------- |
+| `id`            | `INTEGER`   | No   | Autoincremental | PK                              |
+| `profesionalId` | `INTEGER`   | No   | —               | FK a `profesionales.id`         |
+| `diaSemana`     | `ENUM`      | No   | —               | `LUNES` a `DOMINGO`             |
+| `horaInicio`    | `TIME`      | No   | —               | `HH:mm`                         |
+| `horaFin`       | `TIME`      | No   | —               | `HH:mm`; mayor que `horaInicio` |
+| `duracionTurno` | `INTEGER`   | No   | —               | Entero ≥ 1, minutos             |
+| `activo`        | `BOOLEAN`   | No   | `true`          | —                               |
+| `createdAt`     | `TIMESTAMP` | No   | Automático      | —                               |
+| `updatedAt`     | `TIMESTAMP` | No   | Automático      | —                               |
+
+### Tabla `turnos`
+
+Implementada en `src/models/Turno.ts`.
+
+| Campo                   | Tipo           | Nulo | Default         | Restricciones                                        |
+| ----------------------- | -------------- | ---- | --------------- | ---------------------------------------------------- |
+| `id`                    | `INTEGER`      | No   | Autoincremental | PK                                                   |
+| `pacienteId`            | `INTEGER`      | No   | —               | FK a `pacientes.id`                                  |
+| `profesionalId`         | `INTEGER`      | No   | —               | FK a `profesionales.id`                              |
+| `agendaId`              | `INTEGER`      | No   | —               | FK a `agendas.id`                                    |
+| `fecha`                 | `DATEONLY`     | No   | —               | `YYYY-MM-DD`                                         |
+| `hora`                  | `TIME`         | No   | —               | `HH:mm`                                              |
+| `estado`                | `ENUM`         | No   | `PENDIENTE`     | `PENDIENTE`, `CONFIRMADO`, `CANCELADO`, `COMPLETADO` |
+| `motivo`                | `VARCHAR(255)` | No   | —               | Entre 1 y 255 caracteres                             |
+| `observaciones`         | `TEXT`         | Sí   | `NULL`          | —                                                    |
+| `recordatorioEnviadoAt` | `TIMESTAMP`    | Sí   | `NULL`          | Se reinicia si cambia fecha u hora                   |
+| `createdAt`             | `TIMESTAMP`    | No   | Automático      | —                                                    |
+| `updatedAt`             | `TIMESTAMP`    | No   | Automático      | —                                                    |
+
+### Tabla `estudios`
+
+Implementada en `src/models/Estudio.ts`.
+
+| Campo         | Tipo           | Nulo | Default         | Restricciones            |
+| ------------- | -------------- | ---- | --------------- | ------------------------ |
+| `id`          | `INTEGER`      | No   | Autoincremental | PK                       |
+| `pacienteId`  | `INTEGER`      | No   | —               | FK a `pacientes.id`      |
+| `tipo`        | `VARCHAR(100)` | No   | —               | Entre 1 y 100 caracteres |
+| `fecha`       | `DATEONLY`     | No   | —               | `YYYY-MM-DD`             |
+| `descripcion` | `TEXT`         | No   | —               | —                        |
+| `archivoURL`  | `VARCHAR`      | Sí   | `NULL`          | Ruta en Supabase Storage |
+| `createdAt`   | `TIMESTAMP`    | No   | Automático      | —                        |
+| `updatedAt`   | `TIMESTAMP`    | No   | Automático      | —                        |
+
+### Tabla `autorizaciones_estudio`
+
+Implementada en `src/models/AutorizacionEstudio.ts`.
+
+| Campo               | Tipo        | Nulo | Default         | Restricciones                       |
+| ------------------- | ----------- | ---- | --------------- | ----------------------------------- |
+| `id`                | `INTEGER`   | No   | Autoincremental | PK                                  |
+| `estudioId`         | `INTEGER`   | No   | —               | FK a `estudios.id`                  |
+| `profesionalId`     | `INTEGER`   | No   | —               | FK a `profesionales.id`             |
+| `fechaAutorizacion` | `DATEONLY`  | No   | —               | `YYYY-MM-DD`                        |
+| `fechaVencimiento`  | `DATEONLY`  | No   | —               | `YYYY-MM-DD`, ≥ `fechaAutorizacion` |
+| `estado`            | `ENUM`      | No   | `DISPONIBLE`    | `DISPONIBLE` o `VENCIDO`            |
+| `createdAt`         | `TIMESTAMP` | No   | Automático      | —                                   |
+| `updatedAt`         | `TIMESTAMP` | No   | Automático      | —                                   |
+
+Las relaciones se definen en `src/models/index.ts`. Las FK usan
+`ON UPDATE CASCADE` y `ON DELETE RESTRICT`, por lo que no se pueden borrar
+registros con dependencias.
+
 ## Migraciones y seeders
 
-| Archivo                                                                 | Contenido                                       |
-| ----------------------------------------------------------------------- | ----------------------------------------------- |
-| `src/database/migrations/20261008231144-create-users.js`                | Crea `users`                                    |
-| `src/database/migrations/20261008231150-create-pacientes.js`            | Crea `pacientes`                                |
-| `src/database/migrations/20261104000000-add-reset-password-to-users.js` | Agrega campos de recuperación a `users`         |
-| `src/database/seeders/20261010000001-seed-users.js`                     | Usuarios de prueba (incluye el `ADMIN` inicial) |
-| `src/database/seeders/20261010000002-seed-pacientes.js`                 | Pacientes de prueba                             |
+| Archivo                                                                           | Contenido                                       |
+| --------------------------------------------------------------------------------- | ----------------------------------------------- |
+| `src/database/migrations/20261008231144-create-users.js`                          | Crea `users`                                    |
+| `src/database/migrations/20261008231150-create-pacientes.js`                      | Crea `pacientes`                                |
+| `src/database/migrations/20261008231151-create-profesionales.js`                  | Crea `profesionales`                            |
+| `src/database/migrations/20261009000001-create-espacios.js`                       | Crea `espacios`                                 |
+| `src/database/migrations/20261009000002-create-tarifas-espacios.js`               | Crea `tarifas_espacios`                         |
+| `src/database/migrations/20261009000003-create-agendas.js`                        | Crea `agendas`                                  |
+| `src/database/migrations/20261009000004-create-asignaciones-espacios.js`          | Crea `asignaciones_espacios`                    |
+| `src/database/migrations/20261009000005-create-estudios.js`                       | Crea `estudios`                                 |
+| `src/database/migrations/20261009000006-create-turnos.js`                         | Crea `turnos`                                   |
+| `src/database/migrations/20261009000007-create-autorizaciones-estudio.js`         | Crea `autorizaciones_estudio`                   |
+| `src/database/migrations/20261104000000-add-reset-password-to-users.js`           | Agrega campos de recuperación a `users`         |
+| `src/database/migrations/20261118000000-add-recordatorio-enviado-at-to-turnos.js` | Agrega `recordatorioEnviadoAt` a `turnos`       |
+| `src/database/seeders/20261010000001-seed-users.js`                               | Usuarios de prueba (incluye el `ADMIN` inicial) |
+| `src/database/seeders/20261010000002-seed-pacientes.js`                           | Pacientes de prueba                             |
 
 Credenciales de los seeders: contraseña `Password123` para todas las cuentas.
 El administrador inicial es `admin@tfi.local.com`.

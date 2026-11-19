@@ -204,7 +204,15 @@ La documentación detallada de la API está en [`docs/`](./docs/README.md):
 - [Usuarios](./docs/usuarios.md): alta y gestión de cuentas.
 - [Pacientes](./docs/pacientes.md): registro, perfil propio y administración.
 - [Roles](./docs/roles.md): roles disponibles y responsabilidades.
-- [Modelo de datos](./docs/modelo-datos.md): tablas `users` y `pacientes`.
+- [Profesionales](./docs/profesionales.md): perfiles y cuentas asociadas.
+- [Turnos](./docs/turnos.md): creación, actualización y cancelación.
+- [Agendas](./docs/agendas.md): disponibilidad semanal de profesionales.
+- [Espacios](./docs/espacios.md): espacios físicos y ocupación.
+- [Asignaciones de espacio](./docs/asignaciones-espacio.md): asignaciones fijas y específicas.
+- [Tarifas de espacio](./docs/tarifas-espacio.md): precios por hora y vigencia.
+- [Estudios](./docs/estudios.md): estudios médicos, archivos y URL firmada.
+- [Autorizaciones de estudio](./docs/autorizaciones-estudio.md): acceso de profesionales a estudios.
+- [Modelo de datos](./docs/modelo-datos.md): tablas, relaciones y diagrama ER.
 
 ## Flujo de alta de usuarios
 
