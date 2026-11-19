@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import request from 'supertest'
+import jwt from 'jsonwebtoken'
 
 vi.mock('../../src/models/Usuario.js', async () => {
     const mocks = await import('../helpers/mocksModelos.js')
@@ -37,6 +38,19 @@ import app from '../../src/app.js'
 
 const JWT_SECRET = 'secreto-de-prueba'
 
+type Rol = 'PACIENTE' | 'PROFESIONAL' | 'ADMIN'
+
+function tokenPara(id: number, rol: Rol) {
+    return jwt.sign(
+        { id, email: `${rol.toLowerCase()}@test.com`, rol },
+        JWT_SECRET,
+    )
+}
+
+function auth(rol: Rol) {
+    return `Bearer ${tokenPara(1, rol)}`
+}
+
 beforeEach(() => {
     vi.resetAllMocks()
     vi.stubEnv('JWT_SECRET', JWT_SECRET)
@@ -54,7 +68,9 @@ describe('GET /api/autorizacionestudios', () => {
             { id: 2 },
         ])
 
-        const respuesta = await request(app).get('/api/autorizacionestudios')
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body).toEqual([{ id: 1 }, { id: 2 }])
@@ -67,7 +83,9 @@ describe('GET /api/autorizacionestudios/:id', () => {
             id: 5,
         } as never)
 
-        const respuesta = await request(app).get('/api/autorizacionestudios/5')
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios/5')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.id).toBe(5)
@@ -76,7 +94,9 @@ describe('GET /api/autorizacionestudios/:id', () => {
     it('debe responder 404 si no existe', async () => {
         vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(null)
 
-        const respuesta = await request(app).get('/api/autorizacionestudios/99')
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios/99')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(404)
     })
@@ -90,9 +110,9 @@ describe('GET /api/autorizacionestudios/:id/vigencia', () => {
             estaVencida: () => false,
         } as never)
 
-        const respuesta = await request(app).get(
-            '/api/autorizacionestudios/5/vigencia',
-        )
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios/5/vigencia')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body).toEqual({
@@ -105,9 +125,9 @@ describe('GET /api/autorizacionestudios/:id/vigencia', () => {
     it('debe responder 404 si no existe', async () => {
         vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(null)
 
-        const respuesta = await request(app).get(
-            '/api/autorizacionestudios/99/vigencia',
-        )
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios/99/vigencia')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(404)
     })
@@ -135,6 +155,7 @@ describe('POST /api/autorizacionestudios', () => {
 
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send(datos)
 
         expect(respuesta.status).toBe(201)
@@ -145,6 +166,7 @@ describe('POST /api/autorizacionestudios', () => {
     it('debe responder 400 si la fecha de autorización es inválida', async () => {
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send({ ...datos, fechaAutorizacion: 'invalida' })
 
         expect(respuesta.status).toBe(400)
@@ -153,6 +175,7 @@ describe('POST /api/autorizacionestudios', () => {
     it('debe responder 400 si el vencimiento es anterior a la autorización', async () => {
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send({
                 ...datos,
                 fechaAutorizacion: '2026-12-01',
@@ -167,6 +190,7 @@ describe('POST /api/autorizacionestudios', () => {
 
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send(datos)
 
         expect(respuesta.status).toBe(404)
@@ -178,6 +202,7 @@ describe('POST /api/autorizacionestudios', () => {
 
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send(datos)
 
         expect(respuesta.status).toBe(404)
@@ -197,6 +222,7 @@ describe('POST /api/autorizacionestudios', () => {
 
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
+            .set('Authorization', auth('ADMIN'))
             .send(datos)
 
         expect(respuesta.status).toBe(409)
@@ -214,9 +240,9 @@ describe('PATCH /api/autorizacionestudios/:id/revocar', () => {
             instancia as never,
         )
 
-        const respuesta = await request(app).patch(
-            '/api/autorizacionestudios/5/revocar',
-        )
+        const respuesta = await request(app)
+            .patch('/api/autorizacionestudios/5/revocar')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.estado).toBe('VENCIDO')
@@ -225,10 +251,36 @@ describe('PATCH /api/autorizacionestudios/:id/revocar', () => {
     it('debe responder 404 si no existe', async () => {
         vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(null)
 
-        const respuesta = await request(app).patch(
-            '/api/autorizacionestudios/99/revocar',
-        )
+        const respuesta = await request(app)
+            .patch('/api/autorizacionestudios/99/revocar')
+            .set('Authorization', auth('ADMIN'))
 
         expect(respuesta.status).toBe(404)
+    })
+})
+
+describe('Acceso a /api/autorizacionestudios', () => {
+    it('debe responder 401 sin token', async () => {
+        const respuesta = await request(app).get('/api/autorizacionestudios')
+
+        expect(respuesta.status).toBe(401)
+    })
+
+    it('debe responder 403 para un rol sin permisos', async () => {
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios')
+            .set('Authorization', auth('PACIENTE'))
+
+        expect(respuesta.status).toBe(403)
+    })
+
+    it('debe permitir el acceso a un profesional', async () => {
+        vi.mocked(autorizacionEstudioModel.findAll).mockResolvedValue([])
+
+        const respuesta = await request(app)
+            .get('/api/autorizacionestudios')
+            .set('Authorization', auth('PROFESIONAL'))
+
+        expect(respuesta.status).toBe(200)
     })
 })
