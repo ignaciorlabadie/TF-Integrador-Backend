@@ -69,4 +69,13 @@ export const MENSAJES = {
         'La fecha de inicio no puede ser posterior a la fecha de fin',
     ESPACIO_CON_DEPENDENCIAS:
         'No se puede eliminar el espacio porque tiene asignaciones o tarifas asociadas. Podés desactivarlo en su lugar',
+
+    // Tarifas de espacio
+    FILTRO_VIGENTE_INVALIDO: 'El filtro vigente debe ser true o false',
+    TARIFA_DATOS_INVALIDOS: 'Datos de la tarifa inválidos',
+    TARIFA_PRECIO_INVALIDO:
+        'El precio por hora debe ser un número mayor a 0 con hasta 2 decimales',
+    TARIFA_SOLAPADA:
+        'La tarifa se superpone con otra existente para el mismo espacio y rango de fechas',
+    TARIFA_NO_ENCONTRADA: 'Tarifa no encontrada',
 } as const

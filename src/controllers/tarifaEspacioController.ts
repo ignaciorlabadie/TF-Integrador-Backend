@@ -1,0 +1,137 @@
+import type { NextFunction, Request, Response } from 'express'
+import { tarifaEspacioService } from '../services/tarifaEspacioService.js'
+import type {
+    DatosTarifaEspacio,
+    ListarTarifasEspacioFiltros,
+} from '../services/tarifaEspacioService.js'
+import { AppError } from '../errors/AppError.js'
+import { MENSAJES } from '../errors/mensajes.js'
+import { validarId } from '../utils/validarId.js'
+
+function parsearVigente(valor: unknown): boolean {
+    if (valor === 'true') {
+        return true
+    }
+
+    if (valor === 'false') {
+        return false
+    }
+
+    throw new AppError(400, MENSAJES.FILTRO_VIGENTE_INVALIDO)
+}
+
+function validarDatosTarifa(body: Request['body']): DatosTarifaEspacio {
+    const datos = body ?? {}
+
+    if (
+        datos.espacioId === undefined ||
+        datos.precioPorHora === undefined ||
+        datos.fechaDesde === undefined
+    ) {
+        throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
+    }
+
+    return {
+        ...datos,
+        espacioId: validarId(datos.espacioId, 'espacioId'),
+    }
+}
+
+export class TarifaEspacioController {
+    async listar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const filtros: ListarTarifasEspacioFiltros = {}
+            const { espacioId, vigente } = req.query
+
+            if (espacioId !== undefined) {
+                filtros.espacioId = validarId(espacioId, 'espacioId')
+            }
+
+            if (vigente !== undefined) {
+                filtros.vigente = parsearVigente(vigente)
+            }
+
+            const tarifas = await tarifaEspacioService.listar(filtros)
+
+            return res.status(200).json(tarifas)
+        } catch (error) {
+            return next(error)
+        }
+    }
+
+    async buscarPorId(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            const tarifa = await tarifaEspacioService.buscarPorId(id)
+
+            if (!tarifa) {
+                throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+            }
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
+
+    async crear(req: Request, res: Response, next: NextFunction) {
+        try {
+            const datos = validarDatosTarifa(req.body)
+
+            const tarifa = await tarifaEspacioService.crear(datos)
+
+            return res.status(201).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
+
+    async actualizar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            if (!req.body || Object.keys(req.body).length === 0) {
+                throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
+            }
+
+            const datos = validarDatosTarifa(req.body)
+
+            const tarifa = await tarifaEspacioService.actualizar(id, datos)
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
+
+    async eliminar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+
+            await tarifaEspacioService.eliminar(id)
+
+            return res.status(204).send()
+        } catch (error) {
+            return next(error)
+        }
+    }
+
+    async obtenerVigente(req: Request, res: Response, next: NextFunction) {
+        try {
+            const espacioId = validarId(req.query.espacioId, 'espacioId')
+
+            const tarifa = await tarifaEspacioService.obtenerVigente(espacioId)
+
+            if (!tarifa) {
+                throw new AppError(404, MENSAJES.TARIFA_NO_ENCONTRADA)
+            }
+
+            return res.status(200).json(tarifa)
+        } catch (error) {
+            return next(error)
+        }
+    }
+}
+
+export const tarifaEspacioController = new TarifaEspacioController()
