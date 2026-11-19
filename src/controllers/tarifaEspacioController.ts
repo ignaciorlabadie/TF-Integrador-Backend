@@ -1,6 +1,9 @@
 import type { NextFunction, Request, Response } from 'express'
 import { tarifaEspacioService } from '../services/tarifaEspacioService.js'
-import type { ListarTarifasEspacioFiltros } from '../services/tarifaEspacioService.js'
+import type {
+    DatosTarifaEspacio,
+    ListarTarifasEspacioFiltros,
+} from '../services/tarifaEspacioService.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import { validarId } from '../utils/validarId.js'
@@ -15,6 +18,23 @@ function parsearVigente(valor: unknown): boolean {
     }
 
     throw new AppError(400, MENSAJES.FILTRO_VIGENTE_INVALIDO)
+}
+
+function validarDatosTarifa(body: Request['body']): DatosTarifaEspacio {
+    const datos = body ?? {}
+
+    if (
+        datos.espacioId === undefined ||
+        datos.precioPorHora === undefined ||
+        datos.fechaDesde === undefined
+    ) {
+        throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
+    }
+
+    return {
+        ...datos,
+        espacioId: validarId(datos.espacioId, 'espacioId'),
+    }
 }
 
 export class TarifaEspacioController {
@@ -57,20 +77,7 @@ export class TarifaEspacioController {
 
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
-            const body = req.body ?? {}
-
-            if (
-                body.espacioId === undefined ||
-                body.precioPorHora === undefined ||
-                body.fechaDesde === undefined
-            ) {
-                throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
-            }
-
-            const datos = {
-                ...body,
-                espacioId: validarId(body.espacioId, 'espacioId'),
-            }
+            const datos = validarDatosTarifa(req.body)
 
             const tarifa = await tarifaEspacioService.crear(datos)
 
@@ -88,20 +95,7 @@ export class TarifaEspacioController {
                 throw new AppError(400, MENSAJES.SIN_DATOS_ACTUALIZAR)
             }
 
-            const body = req.body
-
-            if (
-                body.espacioId === undefined ||
-                body.precioPorHora === undefined ||
-                body.fechaDesde === undefined
-            ) {
-                throw new AppError(400, MENSAJES.TARIFA_DATOS_INVALIDOS)
-            }
-
-            const datos = {
-                ...body,
-                espacioId: validarId(body.espacioId, 'espacioId'),
-            }
+            const datos = validarDatosTarifa(req.body)
 
             const tarifa = await tarifaEspacioService.actualizar(id, datos)
 
