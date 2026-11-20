@@ -35,3 +35,52 @@ jobs:
               run: npm run check
               env:
                   NODE_ENV: test
+
+    e2e:
+        name: End-to-end tests
+        runs-on: ubuntu-latest
+
+        services:
+            postgres:
+                image: postgres:16-alpine
+                env:
+                    POSTGRES_DB: tfi_turnos_test
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: postgres
+                ports:
+                    - 5432:5432
+                options: >-
+                    --health-cmd pg_isready
+                    --health-interval 10s
+                    --health-timeout 5s
+                    --health-retries 5
+
+        env:
+            E2E_DB_HOST: localhost
+            E2E_DB_PORT: 5432
+            E2E_DB_NAME: tfi_turnos_test
+            E2E_DB_USER: postgres
+            E2E_DB_PASSWORD: postgres
+            JWT_SECRET: secreto-de-e2e
+            FRONTEND_URL: http://localhost:5173
+            SUPABASE_URL: https://test.supabase.co
+            SUPABASE_SERVICE_ROLE_KEY: service-role-de-prueba
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v7
+
+            - name: Setup Node.js
+              uses: actions/setup-node@v7
+              with:
+                  node-version: 24.20.0
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+
+            - name: Apply test migrations
+              run: npm run db:migrate:test
+
+            - name: Run e2e tests
+              run: npm run test:e2e
