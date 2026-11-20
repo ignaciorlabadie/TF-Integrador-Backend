@@ -48,7 +48,7 @@ Antes de comenzar, es necesario tener instalado:
 - npm
 - Git
 - Docker con Docker Compose v2 (`docker compose`)
-- Los puertos `3000` (API), `5432` (PostgreSQL) y `8080` (pgAdmin) libres
+- Los puertos `3000` (API), `5432` (PostgreSQL), `5433` (PostgreSQL de tests E2E) y `8080` (pgAdmin) libres
 
 ## Instalación
 
@@ -157,12 +157,64 @@ npm start
 - Para reiniciar los datos de prueba, ejecutá `npm run db:seed:undo:all` y
   después `npm run db:seed:all`. Volver a ejecutar `db:seed:all` no trunca las
   tablas ni repite los seeders ya aplicados.
-- Los comandos `db:*` usan `src/config/config.js`, que solo define el entorno
-  `development`. En local mantené `NODE_ENV=development`; `production` es para
-  Render.
+- Los comandos `db:*` usan `src/config/config.js`, que define los entornos
+  `development` y `test`. En local mantené `NODE_ENV=development`; `production`
+  es para Render.
 - Si `DATABASE_URL` tiene un valor, los comandos ejecutados en el host apuntan a
   esa base remota, mientras que la app en Docker usa el PostgreSQL local. Para
   desarrollo local dejá `DATABASE_URL` vacía o comentada.
+
+## Tests
+
+### Unitarios e integración
+
+Usan Vitest + Supertest con modelos y base mockeados, por lo que no necesitan
+PostgreSQL:
+
+```bash
+npm test
+npm run test:watch
+npm run test:coverage
+```
+
+`npm run check` ejecuta formato, lint, estos tests y el build.
+
+### End-to-end (E2E)
+
+Los tests E2E están en `tests/e2e/` y ejercitan la API real con Supertest contra
+una base PostgreSQL dedicada, sin mocks. Cubren login y roles, alta pública de
+pacientes, creación de profesionales y agendas, y el ciclo completo de un turno:
+creación, listado con filtros, conflicto de horario y cancelación. También hay
+dos tests de journey completo: reserva de principio a fin y recuperación de
+contraseña.
+
+La base de tests es el servicio `db-test` de `docker-compose.yml` (PostgreSQL
+16 en el puerto `5433`, sin volumen persistente). **Nunca apuntes estos tests a
+la base de desarrollo**: el harness ejecuta `TRUNCATE ... RESTART IDENTITY
+CASCADE` antes de cada caso y crea su propio usuario `ADMIN`.
+
+Primera vez:
+
+```bash
+cp .env.e2e.example .env.e2e
+docker compose up -d db-test
+npm run db:migrate:test
+npm run test:e2e
+```
+
+Para volver a correrlos alcanza con `npm run test:e2e` (o
+`npm run test:e2e:watch` en modo watch). `.env.e2e` es opcional: sin él se usan
+los valores por defecto de `vitest.e2e.config.ts` (base `tfi_turnos_test` en
+`localhost:5433`, usuario y contraseña `postgres`, JWT de prueba y valores
+dummy de Supabase).
+
+El envío de emails se mockea en `tests/e2e/setup.ts`: no hace falta configurar
+Brevo y la salida de la suite no incluye errores de envío.
+
+`npm test` excluye explícitamente `tests/e2e/`, así que el job `quality` de CI
+sigue sin necesitar base de datos. El workflow `.github/workflows/ci.yml` tiene
+un job `e2e` separado con un servicio `postgres:16` que aplica las migraciones
+y corre la suite.
 
 ## Ambientes
 
@@ -178,8 +230,8 @@ panel del servicio.
 
 ### Variables de entorno
 
-El archivo `.env.example` enumera todas las variables usadas por el proyecto.
-Según el entorno, se agrupan de la siguiente manera.
+Los archivos `.env.example` y `.env.e2e.example` enumeran las variables usadas
+por el proyecto. Según el entorno, se agrupan de la siguiente manera.
 
 #### Producción (Render)
 
@@ -218,6 +270,24 @@ Estas variables se usan solo cuando `DATABASE_URL` está vacía o comentada. En
 | `DB_NAME`     | Nombre de la base de datos | `tfi_turnos` |
 | `DB_USER`     | Usuario de PostgreSQL      | `postgres`   |
 | `DB_PASSWORD` | Contraseña de PostgreSQL   | `postgres`   |
+
+#### Base de datos de tests (E2E)
+
+Estas variables se leen de `.env.e2e` (o del entorno) y las usan
+`npm run db:migrate:test` y la suite E2E. Si faltan, se aplican los defaults.
+
+| Variable                    | Descripción                                    | Default                    |
+| --------------------------- | ---------------------------------------------- | -------------------------- |
+| `E2E_DB_HOST`               | Host del PostgreSQL de tests                   | `localhost`                |
+| `E2E_DB_PORT`               | Puerto del PostgreSQL de tests                 | `5433`                     |
+| `E2E_DB_NAME`               | Nombre de la base de tests                     | `tfi_turnos_test`          |
+| `E2E_DB_USER`               | Usuario del PostgreSQL de tests                | `postgres`                 |
+| `E2E_DB_PASSWORD`           | Contraseña del PostgreSQL de tests             | `postgres`                 |
+| `JWT_SECRET`                | Clave JWT usada por la API durante el E2E      | `secreto-de-e2e`           |
+| `FRONTEND_URL`              | Base para los links de emails                  | `http://localhost:5173`    |
+| `BCRYPT_SALT_ROUNDS`        | Rondas de hash (bajas para acelerar los tests) | `4`                        |
+| `SUPABASE_URL`              | Valor dummy exigido fuera de `development`     | `https://test.supabase.co` |
+| `SUPABASE_SERVICE_ROLE_KEY` | Valor dummy exigido fuera de `development`     | `service-role-de-prueba`   |
 
 #### Recordatorios de turnos
 
@@ -261,11 +331,14 @@ TF-Integrador-Backend/
 │   ├── app.ts
 │   └── server.ts
 ├──tests/
+│   ├── e2e/
+│   │   └── helpers/
 │   ├── helpers/
 │   ├── integration/
 │   └── unit/
 ├──.dockerignore
 ├──.env.example
+├──.env.e2e.example
 ├──.gitignore
 ├──.nvmrc
 ├──.prettierignore
@@ -277,7 +350,8 @@ TF-Integrador-Backend/
 ├──package.json
 ├──README.md
 ├──tsconfig.json
-└──vitest.config.ts
+├──vitest.config.ts
+└──vitest.e2e.config.ts
 ```
 
 ## Documentación
