@@ -28,4 +28,12 @@ export default {
               host: process.env.DB_HOST || 'localhost',
               port: Number(process.env.DB_PORT) || 5432,
           },
+    test: {
+        ...configuracion,
+        username: process.env.E2E_DB_USER || 'postgres',
+        password: process.env.E2E_DB_PASSWORD || 'postgres',
+        database: process.env.E2E_DB_NAME || 'tfi_turnos_test',
+        host: process.env.E2E_DB_HOST || 'localhost',
+        port: Number(process.env.E2E_DB_PORT) || 5433,
+    },
 }
