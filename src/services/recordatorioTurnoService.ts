@@ -2,6 +2,7 @@ import { Op } from 'sequelize'
 
 import sequelize from '../config/database.js'
 import { Paciente, Profesional, Turno, Usuario } from '../models/index.js'
+import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import type { EstadoTurno } from '../types/EstadoTurno.js'
 import { enviarEmailTurnoRecordatorio } from './emailService.js'
 
@@ -166,7 +167,13 @@ export async function procesarRecordatoriosTurnos(): Promise<void> {
             {
                 model: Paciente,
                 as: 'paciente',
-                include: [{ model: Usuario, as: 'usuario' }],
+                include: [
+                    {
+                        model: Usuario,
+                        as: 'usuario',
+                        attributes: ATRIBUTOS_USUARIO_PUBLICOS,
+                    },
+                ],
             },
             { model: Profesional, as: 'profesional' },
         ],
