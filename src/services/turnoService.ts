@@ -8,6 +8,7 @@ import {
     Turno,
     Usuario,
 } from '../models/index.js'
+import { ATRIBUTOS_USUARIO_PUBLICOS } from '../models/atributosUsuario.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
 import type { ActualizarTurno } from '../types/ActualizarTurno.js'
@@ -23,11 +24,15 @@ type TurnoConRelaciones = Turno & {
     agenda?: Agenda
 }
 
+const atributosUsuario = {
+    attributes: ATRIBUTOS_USUARIO_PUBLICOS,
+}
+
 const incluirRelaciones = () => [
     {
         model: Paciente,
         as: 'paciente',
-        include: [{ model: Usuario, as: 'usuario' }],
+        include: [{ model: Usuario, as: 'usuario', ...atributosUsuario }],
     },
     { model: Profesional, as: 'profesional' },
     { model: Agenda, as: 'agenda' },

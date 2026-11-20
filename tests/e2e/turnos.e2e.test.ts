@@ -48,6 +48,14 @@ describe('POST /api/turnos', () => {
             estado: 'CONFIRMADO',
         })
         expect(respuesta.body.paciente).toBeDefined()
+        const usuario = respuesta.body.paciente.usuario as Record<
+            string,
+            unknown
+        >
+        expect(usuario).toHaveProperty('id')
+        expect(usuario).not.toHaveProperty('password')
+        expect(usuario).not.toHaveProperty('resetPasswordTokenHash')
+        expect(usuario).not.toHaveProperty('resetPasswordExpiresAt')
         expect(respuesta.body.profesional).toBeDefined()
         expect(respuesta.body.agenda).toBeDefined()
     })
