@@ -1,8 +1,9 @@
 import type { Request } from 'express'
 
-import { Estudio } from '../models/index.js'
+import { AutorizacionEstudio, Estudio } from '../models/index.js'
 import { AppError } from '../errors/AppError.js'
 import { MENSAJES } from '../errors/mensajes.js'
+import { buscarEstudioPorId } from './estudioService.js'
 import { pacienteService } from './pacienteService.js'
 
 export async function verificarAccesoEstudio(
@@ -22,10 +23,27 @@ export async function verificarAccesoEstudio(
     if (usuario.rol === 'PACIENTE') {
         const paciente = await pacienteService.buscarPorUsuarioId(usuario.id)
 
-        if (!paciente || paciente.id !== estudio.pacienteId) {
-            throw new AppError(403, MENSAJES.SIN_PERMISOS)
+        if (!paciente || Number(paciente.id) !== Number(estudio.pacienteId)) {
+            throw new AppError(404, 'Estudio no encontrado')
         }
 
         return
     }
+}
+
+export async function verificarAccesoAutorizacion(
+    req: Request,
+    autorizacion: AutorizacionEstudio,
+): Promise<void> {
+    if (req.usuario?.rol !== 'PACIENTE') {
+        return
+    }
+
+    const estudio = await buscarEstudioPorId(autorizacion.estudioId)
+
+    if (!estudio) {
+        throw new AppError(404, 'Estudio no encontrado')
+    }
+
+    await verificarAccesoEstudio(req, estudio)
 }

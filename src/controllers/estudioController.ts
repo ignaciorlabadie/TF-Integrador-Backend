@@ -10,6 +10,8 @@ import {
     crearEstudio,
     actualizarArchivoEstudio,
 } from '../services/estudioService.js'
+import { verificarAccesoEstudio } from '../services/accesoService.js'
+import { pacienteService } from '../services/pacienteService.js'
 import { AppError } from '../errors/AppError.js'
 import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
@@ -32,11 +34,27 @@ export async function obtenerEstudioPorId(req: Request, res: Response) {
         throw new AppError(404, 'Estudio no encontrado')
     }
 
+    await verificarAccesoEstudio(req, estudio)
+
     return res.status(200).json(estudio)
 }
 
 export async function obtenerEstudiosPaciente(req: Request, res: Response) {
-    const pacienteId = validarId(req.params.pacienteId, 'ID del paciente')
+    let pacienteId: number
+
+    if (req.usuario?.rol === 'PACIENTE') {
+        const paciente = await pacienteService.buscarPorUsuarioId(
+            req.usuario.id,
+        )
+
+        if (!paciente) {
+            throw new AppError(404, 'Paciente no encontrado')
+        }
+
+        pacienteId = paciente.id
+    } else {
+        pacienteId = validarId(req.params.pacienteId, 'ID del paciente')
+    }
 
     const estudios = await obtenerEstudiosPorPaciente(pacienteId)
 
@@ -100,6 +118,8 @@ export async function modificarArchivo(req: Request, res: Response) {
         throw new AppError(404, 'Estudio no encontrado')
     }
 
+    await verificarAccesoEstudio(req, estudio)
+
     const archivoURL = await subirArchivoEstudio(
         file.buffer,
         file.mimetype,
@@ -119,6 +139,8 @@ export async function obtenerArchivo(req: Request, res: Response) {
     if (!estudio) {
         throw new AppError(404, 'Estudio no encontrado')
     }
+
+    await verificarAccesoEstudio(req, estudio)
 
     if (!estudio.archivoURL) {
         throw new AppError(404, 'El estudio no tiene un archivo asociado')
