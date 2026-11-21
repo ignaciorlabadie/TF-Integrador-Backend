@@ -11,7 +11,7 @@ temporal.
 | `GET`  | `/api/estudios`                      | `ADMIN` o `PROFESIONAL`             | Lista todos los estudios  |
 | `GET`  | `/api/estudios/:id`                  | `ADMIN`, `PROFESIONAL` o `PACIENTE` | Obtiene un estudio por ID |
 | `GET`  | `/api/estudios/paciente/:pacienteId` | `ADMIN` o `PACIENTE`                | Estudios de un paciente   |
-| `POST` | `/api/estudios`                      | `ADMIN`                             | Registra un estudio       |
+| `POST` | `/api/estudios`                      | `ADMIN` o `PACIENTE`                | Registra un estudio       |
 | `PUT`  | `/api/estudios/:id/archivo`          | `ADMIN`, `PROFESIONAL` o `PACIENTE` | Reemplaza el archivo      |
 | `GET`  | `/api/estudios/:id/archivo`          | `ADMIN`, `PROFESIONAL` o `PACIENTE` | URL firmada del archivo   |
 
@@ -21,13 +21,13 @@ temporal.
 
 Los datos se envían como `multipart/form-data` (no JSON).
 
-| Campo         | Tipo   | Obligatorio | Descripción                   |
-| ------------- | ------ | ----------- | ----------------------------- |
-| `pacienteId`  | number | Sí          | ID del paciente existente     |
-| `tipo`        | string | Sí          | Entre 1 y 100 caracteres      |
-| `fecha`       | string | Sí          | `YYYY-MM-DD`                  |
-| `descripcion` | string | Sí          | Texto libre, no vacío         |
-| `archivo`     | file   | No          | PDF, JPEG o PNG, máximo 10 MB |
+| Campo         | Tipo   | Obligatorio | Descripción                                                    |
+| ------------- | ------ | ----------- | -------------------------------------------------------------- |
+| `pacienteId`  | number | Solo ADMIN  | ID del paciente existente; para `PACIENTE` se deriva del token |
+| `tipo`        | string | Sí          | Entre 1 y 100 caracteres                                       |
+| `fecha`       | string | Sí          | `YYYY-MM-DD`                                                   |
+| `descripcion` | string | Sí          | Texto libre, no vacío                                          |
+| `archivo`     | file   | No          | PDF, JPEG o PNG, máximo 10 MB                                  |
 
 Ejemplo con `curl`:
 

@@ -216,13 +216,33 @@ describe('POST /api/estudios', () => {
         expect(respuesta.status).toBe(401)
     })
 
-    it('debe responder 403 a un paciente', async () => {
+    it('debe crear el estudio para el paciente autenticado ignorando el pacienteId del body', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(pacienteModel.findByPk).mockResolvedValue({
+            id: 5,
+            nombre: 'Ana',
+        } as never)
+        vi.mocked(estudioModel.create).mockResolvedValue({
+            id: 3,
+            ...datosEstudio,
+            pacienteId: 5,
+            archivoURL: null,
+        } as never)
+
         const respuesta = await request(app)
             .post('/api/estudios')
             .set(autenticado('PACIENTE', 1))
-            .send(datosEstudio)
+            .send({ ...datosEstudio, pacienteId: '999' })
 
-        expect(respuesta.status).toBe(403)
+        expect(respuesta.status).toBe(201)
+        expect(respuesta.body.pacienteId).toBe(5)
+        expect(estudioModel.create).toHaveBeenCalledWith({
+            pacienteId: 5,
+            tipo: 'Resonancia',
+            fecha: '2025-03-11',
+            descripcion: 'Control de rodilla',
+            archivoURL: null,
+        })
     })
 
     it('debe rechazar cuando falta el tipo de estudio', async () => {
