@@ -139,9 +139,9 @@ router.get(
  *       - Autorizaciones de estudio
  *     summary: Crea una autorización de estudio
  *     description: >
- *       ADMIN o PROFESIONAL. El estado se define automáticamente como
- *       DISPONIBLE. No puede existir otra autorización vigente para el mismo
- *       profesional y estudio.
+ *       ADMIN, PROFESIONAL o PACIENTE (solo sobre sus propios estudios). El
+ *       estado se define automáticamente como DISPONIBLE. No puede existir
+ *       otra autorización vigente para el mismo profesional y estudio.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -171,7 +171,7 @@ router.get(
 router.post(
     '/',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     crearAutorizacion,
 )
 
@@ -182,7 +182,9 @@ router.post(
  *     tags:
  *       - Autorizaciones de estudio
  *     summary: Revoca una autorización
- *     description: Cambia el estado de la autorización a VENCIDO.
+ *     description: >
+ *       ADMIN, PROFESIONAL o PACIENTE (solo sus propias autorizaciones).
+ *       Cambia el estado de la autorización a VENCIDO.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -212,7 +214,7 @@ router.post(
 router.patch(
     '/:id/revocar',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     revocarAutorizacion,
 )
 
