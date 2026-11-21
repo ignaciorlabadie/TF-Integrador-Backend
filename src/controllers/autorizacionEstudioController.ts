@@ -8,7 +8,11 @@ import {
     revocarProfesionalService,
     verificarVigenciaService,
 } from '../services/autorizacionEstudioService.js'
-import { verificarAccesoAutorizacion } from '../services/accesoService.js'
+import {
+    verificarAccesoAutorizacion,
+    verificarAccesoEstudio,
+} from '../services/accesoService.js'
+import { buscarEstudioPorId } from '../services/estudioService.js'
 import { pacienteService } from '../services/pacienteService.js'
 
 import { AppError } from '../errors/AppError.js'
@@ -56,6 +60,16 @@ export async function crearAutorizacion(req: Request, res: Response) {
     const idEstudioNum = validarId(estudioId, 'ID del estudio')
     const idProfesionalNum = validarId(profesionalId, 'ID del profesional')
 
+    if (req.usuario?.rol === 'PACIENTE') {
+        const estudio = await buscarEstudioPorId(idEstudioNum)
+
+        if (!estudio) {
+            throw new AppError(404, 'Estudio no encontrado')
+        }
+
+        await verificarAccesoEstudio(req, estudio)
+    }
+
     if (
         typeof fechaAutorizacion !== 'string' ||
         !esFechaValida(fechaAutorizacion)
@@ -95,6 +109,16 @@ export async function crearAutorizacion(req: Request, res: Response) {
 
 export async function revocarAutorizacion(req: Request, res: Response) {
     const id = validarId(req.params.id)
+
+    if (req.usuario?.rol === 'PACIENTE') {
+        const autorizacionExistente = await buscarAutorizacionPorId(id)
+
+        if (!autorizacionExistente) {
+            throw new AppError(404, 'Autorización no encontrada')
+        }
+
+        await verificarAccesoAutorizacion(req, autorizacionExistente)
+    }
 
     const autorizacion = await revocarProfesionalService(id)
 

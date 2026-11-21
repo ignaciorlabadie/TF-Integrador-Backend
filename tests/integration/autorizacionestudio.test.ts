@@ -164,6 +164,47 @@ describe('POST /api/autorizacionestudios', () => {
         expect(respuesta.body.estado).toBe('DISPONIBLE')
     })
 
+    it('debe crear la autorización para un paciente sobre su propio estudio', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(estudioModel.findByPk).mockResolvedValue({
+            id: 1,
+            pacienteId: 5,
+        } as never)
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue({
+            id: 2,
+        } as never)
+        vi.mocked(autorizacionEstudioModel.findOne).mockResolvedValue(null)
+        vi.mocked(autorizacionEstudioModel.create).mockResolvedValue({
+            id: 11,
+            ...datos,
+            estado: 'DISPONIBLE',
+        } as never)
+
+        const respuesta = await request(app)
+            .post('/api/autorizacionestudios')
+            .set('Authorization', auth('PACIENTE'))
+            .send(datos)
+
+        expect(respuesta.status).toBe(201)
+        expect(respuesta.body.id).toBe(11)
+    })
+
+    it('debe responder 404 si el paciente intenta autorizar un estudio ajeno', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(estudioModel.findByPk).mockResolvedValue({
+            id: 1,
+            pacienteId: 99,
+        } as never)
+
+        const respuesta = await request(app)
+            .post('/api/autorizacionestudios')
+            .set('Authorization', auth('PACIENTE'))
+            .send(datos)
+
+        expect(respuesta.status).toBe(404)
+        expect(autorizacionEstudioModel.create).not.toHaveBeenCalled()
+    })
+
     it('debe responder 400 si la fecha de autorización es inválida', async () => {
         const respuesta = await request(app)
             .post('/api/autorizacionestudios')
@@ -247,6 +288,54 @@ describe('PATCH /api/autorizacionestudios/:id/revocar', () => {
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.estado).toBe('VENCIDO')
+    })
+
+    it('debe permitir a un paciente revocar su propia autorización', async () => {
+        const instancia = {
+            id: 5,
+            estudioId: 1,
+            revocarProfesional: vi.fn(),
+            save: vi.fn().mockResolvedValue({ id: 5, estado: 'VENCIDO' }),
+        }
+        vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(
+            instancia as never,
+        )
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(estudioModel.findByPk).mockResolvedValue({
+            id: 1,
+            pacienteId: 5,
+        } as never)
+
+        const respuesta = await request(app)
+            .patch('/api/autorizacionestudios/5/revocar')
+            .set('Authorization', auth('PACIENTE'))
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body.estado).toBe('VENCIDO')
+    })
+
+    it('debe responder 404 si el paciente intenta revocar una autorización ajena', async () => {
+        const instancia = {
+            id: 5,
+            estudioId: 1,
+            revocarProfesional: vi.fn(),
+            save: vi.fn(),
+        }
+        vi.mocked(autorizacionEstudioModel.findByPk).mockResolvedValue(
+            instancia as never,
+        )
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(estudioModel.findByPk).mockResolvedValue({
+            id: 1,
+            pacienteId: 99,
+        } as never)
+
+        const respuesta = await request(app)
+            .patch('/api/autorizacionestudios/5/revocar')
+            .set('Authorization', auth('PACIENTE'))
+
+        expect(respuesta.status).toBe(404)
+        expect(instancia.revocarProfesional).not.toHaveBeenCalled()
     })
 
     it('debe responder 404 si no existe', async () => {
