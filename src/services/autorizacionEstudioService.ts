@@ -83,5 +83,18 @@ export async function listarAutorizacionesPorPaciente(pacienteId: number) {
 }
 
 export async function buscarAutorizacionPorId(id: number) {
-    return await AutorizacionEstudio.findByPk(id)
+    return await AutorizacionEstudio.findByPk(id, {
+        include: [
+            {
+                model: Estudio,
+                as: 'estudio',
+                attributes: ['id', 'tipo'],
+            },
+            {
+                model: Profesional,
+                as: 'profesional',
+                attributes: ['id', 'nombre', 'apellido', 'especialidad'],
+            },
+        ],
+    })
 }

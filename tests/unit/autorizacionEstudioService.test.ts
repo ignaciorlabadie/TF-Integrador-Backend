@@ -52,7 +52,25 @@ describe('autorizacionEstudioService', () => {
 
             const resultado = await buscarAutorizacionPorId(5)
 
-            expect(autorizacionEstudioModel.findByPk).toHaveBeenCalledWith(5)
+            expect(autorizacionEstudioModel.findByPk).toHaveBeenCalledWith(5, {
+                include: [
+                    {
+                        model: estudioModel,
+                        as: 'estudio',
+                        attributes: ['id', 'tipo'],
+                    },
+                    {
+                        model: profesionalModel,
+                        as: 'profesional',
+                        attributes: [
+                            'id',
+                            'nombre',
+                            'apellido',
+                            'especialidad',
+                        ],
+                    },
+                ],
+            })
             expect(resultado).toBe(autorizacion)
         })
 
