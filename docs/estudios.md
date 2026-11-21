@@ -6,14 +6,14 @@ temporal.
 
 ## Resumen
 
-| Método | Ruta                                 | Acceso                  | Descripción               |
-| ------ | ------------------------------------ | ----------------------- | ------------------------- |
-| `GET`  | `/api/estudios`                      | `ADMIN` o `PROFESIONAL` | Lista todos los estudios  |
-| `GET`  | `/api/estudios/:id`                  | `ADMIN` o `PROFESIONAL` | Obtiene un estudio por ID |
-| `GET`  | `/api/estudios/paciente/:pacienteId` | `ADMIN` o `PACIENTE`    | Estudios de un paciente   |
-| `POST` | `/api/estudios`                      | `ADMIN`                 | Registra un estudio       |
-| `PUT`  | `/api/estudios/:id/archivo`          | `ADMIN` o `PROFESIONAL` | Reemplaza el archivo      |
-| `GET`  | `/api/estudios/:id/archivo`          | `ADMIN` o `PROFESIONAL` | URL firmada del archivo   |
+| Método | Ruta                                 | Acceso                              | Descripción               |
+| ------ | ------------------------------------ | ----------------------------------- | ------------------------- |
+| `GET`  | `/api/estudios`                      | `ADMIN` o `PROFESIONAL`             | Lista todos los estudios  |
+| `GET`  | `/api/estudios/:id`                  | `ADMIN`, `PROFESIONAL` o `PACIENTE` | Obtiene un estudio por ID |
+| `GET`  | `/api/estudios/paciente/:pacienteId` | `ADMIN` o `PACIENTE`                | Estudios de un paciente   |
+| `POST` | `/api/estudios`                      | `ADMIN`                             | Registra un estudio       |
+| `PUT`  | `/api/estudios/:id/archivo`          | `ADMIN`, `PROFESIONAL` o `PACIENTE` | Reemplaza el archivo      |
+| `GET`  | `/api/estudios/:id/archivo`          | `ADMIN`, `PROFESIONAL` o `PACIENTE` | URL firmada del archivo   |
 
 ---
 
@@ -61,14 +61,17 @@ Devuelve `200` con todos los estudios ordenados por fecha descendente.
 ## GET /api/estudios/:id
 
 Devuelve `200` con el estudio, el `paciente` (`id`, `nombre`, `apellido`,
-`dni`) y sus autorizaciones con el profesional. Responde `400` si el ID es
-inválido y `404` si no existe.
+`dni`) y sus autorizaciones con el profesional. Un `PACIENTE` solo puede ver su
+propio estudio; si pide uno ajeno responde `404`. Responde `400` si el ID es
+inválido.
 
 ## GET /api/estudios/paciente/:pacienteId
 
 Devuelve `200` con los estudios del paciente. Incluye solo las autorizaciones
 con estado `DISPONIBLE` y `fechaVencimiento` no pasada. Responde `404` si el
-paciente no existe.
+paciente no existe. Cuando quien consulta es un `PACIENTE`, el `pacienteId` de
+la ruta se ignora y se usa su perfil del token, por lo que no puede listar
+estudios de otros pacientes.
 
 ## PUT /api/estudios/:id/archivo
 

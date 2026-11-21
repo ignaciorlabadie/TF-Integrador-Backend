@@ -2,18 +2,36 @@ import type { Request, Response } from 'express'
 
 import {
     listarAutorizaciones,
+    listarAutorizacionesPorPaciente,
     buscarAutorizacionPorId,
     autorizarProfesionalService,
     revocarProfesionalService,
     verificarVigenciaService,
 } from '../services/autorizacionEstudioService.js'
+import { verificarAccesoAutorizacion } from '../services/accesoService.js'
+import { pacienteService } from '../services/pacienteService.js'
 
 import { AppError } from '../errors/AppError.js'
 import { esFechaValida } from '../utils/validacion.js'
 import { validarId } from '../utils/validarId.js'
 
-export async function obtenerAutorizaciones(_req: Request, res: Response) {
-    const autorizaciones = await listarAutorizaciones()
+export async function obtenerAutorizaciones(req: Request, res: Response) {
+    let autorizaciones
+
+    if (req.usuario?.rol === 'PACIENTE') {
+        const paciente = await pacienteService.buscarPorUsuarioId(
+            req.usuario.id,
+        )
+
+        if (!paciente) {
+            throw new AppError(404, 'Paciente no encontrado')
+        }
+
+        autorizaciones = await listarAutorizacionesPorPaciente(paciente.id)
+    } else {
+        autorizaciones = await listarAutorizaciones()
+    }
+
     return res.status(200).json(autorizaciones)
 }
 
@@ -25,6 +43,8 @@ export async function obtenerAutorizacionPorId(req: Request, res: Response) {
     if (!autorizacion) {
         throw new AppError(404, 'Autorización no encontrada')
     }
+
+    await verificarAccesoAutorizacion(req, autorizacion)
 
     return res.status(200).json(autorizacion)
 }
@@ -87,6 +107,16 @@ export async function revocarAutorizacion(req: Request, res: Response) {
 
 export async function verificarVigencia(req: Request, res: Response) {
     const id = validarId(req.params.id)
+
+    if (req.usuario?.rol === 'PACIENTE') {
+        const autorizacion = await buscarAutorizacionPorId(id)
+
+        if (!autorizacion) {
+            throw new AppError(404, 'Autorización no encontrada')
+        }
+
+        await verificarAccesoAutorizacion(req, autorizacion)
+    }
 
     const vigencia = await verificarVigenciaService(id)
 

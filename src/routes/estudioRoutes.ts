@@ -52,8 +52,9 @@ router.get(
  *       - Estudios
  *     summary: Obtiene un estudio por ID
  *     description: >
- *       Solo ADMIN o PROFESIONAL. Incluye el paciente y las autorizaciones
- *       vigentes con su profesional.
+ *       ADMIN, PROFESIONAL o PACIENTE. Los pacientes solo pueden acceder a sus
+ *       propios estudios. Incluye el paciente y las autorizaciones vigentes con
+ *       su profesional.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -83,7 +84,7 @@ router.get(
 router.get(
     '/:id',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     obtenerEstudioPorId,
 )
 
@@ -95,8 +96,9 @@ router.get(
  *       - Estudios
  *     summary: Lista los estudios de un paciente
  *     description: >
- *       ADMIN o PACIENTE. Incluye solo las autorizaciones disponibles y no
- *       vencidas.
+ *       ADMIN o PACIENTE. Los pacientes ven siempre sus propios estudios; el
+ *       ID de la ruta se ignora para ese rol. Incluye solo las autorizaciones
+ *       disponibles y no vencidas.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -182,8 +184,9 @@ router.post(
  *       - Estudios
  *     summary: Reemplaza el archivo de un estudio
  *     description: >
- *       ADMIN o PROFESIONAL. El archivo es obligatorio, debe ser PDF, JPEG o
- *       PNG de hasta 10 MB y reemplaza al archivo anterior.
+ *       ADMIN, PROFESIONAL o PACIENTE (solo su propio estudio). El archivo es
+ *       obligatorio, debe ser PDF, JPEG o PNG de hasta 10 MB y reemplaza al
+ *       archivo anterior.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -226,7 +229,7 @@ router.post(
 router.put(
     '/:id/archivo',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     uploadEstudio.single('archivo'),
     modificarArchivo,
 )
@@ -239,8 +242,9 @@ router.put(
  *       - Estudios
  *     summary: Obtiene una URL firmada del archivo de un estudio
  *     description: >
- *       ADMIN o PROFESIONAL. No devuelve el binario: responde con una URL
- *       temporal de Supabase y su tiempo de validez en segundos.
+ *       ADMIN, PROFESIONAL o PACIENTE (solo su propio estudio). No devuelve el
+ *       binario: responde con una URL temporal de Supabase y su tiempo de
+ *       validez en segundos.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -270,7 +274,7 @@ router.put(
 router.get(
     '/:id/archivo',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     obtenerArchivo,
 )
 

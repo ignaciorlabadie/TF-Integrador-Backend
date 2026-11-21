@@ -32,6 +32,7 @@ vi.mock('../../src/services/storageService.js', () => ({
 import {
     autorizacionEstudioModel,
     estudioModel,
+    pacienteModel,
     profesionalModel,
 } from '../helpers/mocksModelos.js'
 import app from '../../src/app.js'
@@ -266,12 +267,15 @@ describe('Acceso a /api/autorizacionestudios', () => {
         expect(respuesta.status).toBe(401)
     })
 
-    it('debe responder 403 para un rol sin permisos', async () => {
+    it('debe permitir el acceso a un paciente', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(autorizacionEstudioModel.findAll).mockResolvedValue([])
+
         const respuesta = await request(app)
             .get('/api/autorizacionestudios')
             .set('Authorization', auth('PACIENTE'))
 
-        expect(respuesta.status).toBe(403)
+        expect(respuesta.status).toBe(200)
     })
 
     it('debe permitir el acceso a un profesional', async () => {

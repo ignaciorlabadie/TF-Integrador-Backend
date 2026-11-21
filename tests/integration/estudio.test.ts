@@ -180,6 +180,7 @@ describe('GET /api/estudios/paciente/:pacienteId', () => {
     })
 
     it('debe listar los estudios del paciente con autorizaciones vigentes', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
         vi.mocked(pacienteModel.findByPk).mockResolvedValue({
             id: 5,
             nombre: 'Ana',
@@ -301,12 +302,23 @@ describe('PUT /api/estudios/:id/archivo', () => {
         expect(respuesta.status).toBe(401)
     })
 
-    it('debe responder 403 a un paciente', async () => {
+    it('debe permitir a un paciente reemplazar el archivo de su estudio', async () => {
+        vi.mocked(pacienteModel.findOne).mockResolvedValue({ id: 5 } as never)
+        vi.mocked(estudioModel.findByPk).mockResolvedValue({
+            ...estudioExistente,
+            archivoURL: 'estudios/5/archivo.pdf',
+            update: vi.fn().mockResolvedValue({
+                ...estudioExistente,
+                archivoURL: 'estudios/5/nuevo.pdf',
+            }),
+        } as never)
+
         const respuesta = await request(app)
             .put('/api/estudios/1/archivo')
             .set(autenticado('PACIENTE', 1))
+            .attach('archivo', Buffer.from('contenido'), 'nuevo.pdf')
 
-        expect(respuesta.status).toBe(403)
+        expect(respuesta.status).toBe(200)
     })
 
     it('debe responder 400 si no se proporciona un archivo', async () => {

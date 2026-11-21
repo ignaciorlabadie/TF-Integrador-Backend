@@ -68,6 +68,20 @@ export async function listarAutorizaciones() {
     return await AutorizacionEstudio.findAll()
 }
 
+export async function listarAutorizacionesPorPaciente(pacienteId: number) {
+    return await AutorizacionEstudio.findAll({
+        include: [
+            {
+                model: Estudio,
+                as: 'estudio',
+                where: { pacienteId },
+                attributes: [],
+                required: true,
+            },
+        ],
+    })
+}
+
 export async function buscarAutorizacionPorId(id: number) {
     return await AutorizacionEstudio.findByPk(id)
 }
