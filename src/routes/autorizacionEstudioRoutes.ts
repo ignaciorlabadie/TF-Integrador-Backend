@@ -18,6 +18,9 @@ const router = Router()
  *     tags:
  *       - Autorizaciones de estudio
  *     summary: Lista las autorizaciones de estudio
+ *     description: >
+ *       ADMIN o PROFESIONAL ven todas. PACIENTE solo las autorizaciones de sus
+ *       propios estudios.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -37,7 +40,7 @@ const router = Router()
 router.get(
     '/',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     obtenerAutorizaciones,
 )
 
@@ -48,6 +51,9 @@ router.get(
  *     tags:
  *       - Autorizaciones de estudio
  *     summary: Obtiene una autorización por ID
+ *     description: >
+ *       ADMIN o PROFESIONAL pueden consultar cualquier autorización. PACIENTE
+ *       solo las de sus propios estudios.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -77,7 +83,7 @@ router.get(
 router.get(
     '/:id',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     obtenerAutorizacionPorId,
 )
 
@@ -90,7 +96,8 @@ router.get(
  *     summary: Consulta la vigencia de una autorización
  *     description: >
  *       Una autorización está vigente si su estado es DISPONIBLE y su fecha
- *       de vencimiento no pasó.
+ *       de vencimiento no pasó. ADMIN y PROFESIONAL pueden consultarla;
+ *       PACIENTE solo si pertenece a uno de sus estudios.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -120,7 +127,7 @@ router.get(
 router.get(
     '/:id/vigencia',
     verificarToken,
-    verificarRol('ADMIN', 'PROFESIONAL'),
+    verificarRol('ADMIN', 'PROFESIONAL', 'PACIENTE'),
     verificarVigencia,
 )
 
