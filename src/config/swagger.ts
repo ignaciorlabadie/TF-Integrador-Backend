@@ -661,9 +661,15 @@ const estudioSchema = {
 
 const crearEstudioSchema = {
     type: 'object',
-    required: ['pacienteId', 'tipo', 'fecha', 'descripcion'],
+    required: ['tipo', 'fecha', 'descripcion'],
     properties: {
-        pacienteId: { type: 'integer', minimum: 1, example: 4 },
+        pacienteId: {
+            type: 'integer',
+            minimum: 1,
+            example: 4,
+            description:
+                'Obligatorio solo para ADMIN. PACIENTE: se ignora, se deriva del token.',
+        },
         tipo: {
             type: 'string',
             minLength: 1,

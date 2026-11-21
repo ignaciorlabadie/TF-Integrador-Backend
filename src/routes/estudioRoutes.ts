@@ -142,8 +142,10 @@ router.get(
  *       - Estudios
  *     summary: Registra un estudio
  *     description: >
- *       Solo ADMIN. Los campos se envían como multipart/form-data. El archivo
- *       es opcional y debe ser PDF, JPEG o PNG de hasta 10 MB.
+ *       ADMIN o PACIENTE. Para PACIENTE, el pacienteId se deriva del token y
+ *       se ignora el valor enviado en el body. Los campos se envían como
+ *       multipart/form-data. El archivo es opcional y debe ser PDF, JPEG o PNG
+ *       de hasta 10 MB.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -171,7 +173,7 @@ router.get(
 router.post(
     '/',
     verificarToken,
-    verificarRol('ADMIN'),
+    verificarRol('ADMIN', 'PACIENTE'),
     uploadEstudio.single('archivo'),
     registrarEstudio,
 )

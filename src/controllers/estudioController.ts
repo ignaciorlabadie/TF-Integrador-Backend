@@ -71,7 +71,21 @@ export async function registrarEstudio(req: Request, res: Response) {
         descripcion: string
     }
 
-    const idPacienteNum = validarId(pacienteId, 'ID del paciente')
+    let idPacienteNum: number
+
+    if (req.usuario?.rol === 'PACIENTE') {
+        const paciente = await pacienteService.buscarPorUsuarioId(
+            req.usuario.id,
+        )
+
+        if (!paciente) {
+            throw new AppError(404, 'Paciente no encontrado')
+        }
+
+        idPacienteNum = paciente.id
+    } else {
+        idPacienteNum = validarId(pacienteId, 'ID del paciente')
+    }
 
     if (typeof tipo !== 'string' || tipo.trim().length === 0) {
         throw new AppError(400, 'El tipo de estudio es obligatorio')
