@@ -711,6 +711,24 @@ const autorizacionEstudioSchema = {
             default: 'DISPONIBLE',
             example: 'DISPONIBLE',
         },
+        estudio: {
+            type: 'object',
+            description: 'Estudio autorizado, incluido en el detalle.',
+            properties: {
+                id: idEntero,
+                tipo: { type: 'string', example: 'Radiografía' },
+            },
+        },
+        profesional: {
+            type: 'object',
+            description: 'Profesional autorizado, incluido en el detalle.',
+            properties: {
+                id: idEntero,
+                nombre: { type: 'string', example: 'Ana' },
+                apellido: { type: 'string', example: 'Gómez' },
+                especialidad: { type: 'string', example: 'Cardiología' },
+            },
+        },
         ...timestamps,
     },
 }

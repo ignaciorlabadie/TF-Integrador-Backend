@@ -62,8 +62,9 @@ incluyen las autorizaciones de sus estudios.
 
 ## GET /api/autorizacionestudios/:id
 
-Devuelve `200` con la autorización; `400` si el ID no es un entero positivo y
-`404` si no existe o pertenece a otro paciente.
+Devuelve `200` con la autorización, incluyendo `estudio` (`id`, `tipo`) y
+`profesional` (`id`, `nombre`, `apellido`, `especialidad`). `400` si el ID no es
+un entero positivo y `404` si no existe o pertenece a otro paciente.
 
 ## GET /api/autorizacionestudios/:id/vigencia
 
