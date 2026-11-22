@@ -202,6 +202,17 @@ export class AgendaController {
             return next(error)
         }
     }
+
+    async activar(req: Request, res: Response, next: NextFunction) {
+        try {
+            const id = validarId(req.params.id)
+            const agenda = await agendaService.activar(id)
+
+            return res.status(200).json(agenda)
+        } catch (error) {
+            return next(error)
+        }
+    }
 }
 
 export const agendaController = new AgendaController()

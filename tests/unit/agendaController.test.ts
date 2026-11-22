@@ -10,6 +10,7 @@ vi.mock('../../src/services/agendaService.js', () => ({
         crear: vi.fn(),
         actualizar: vi.fn(),
         desactivar: vi.fn(),
+        activar: vi.fn(),
     },
 }))
 
@@ -562,6 +563,77 @@ describe('agendaController.desactivar', () => {
         const { req, res, next } = crearMocks({}, { id: '10' })
 
         await agendaController.desactivar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(error)
+        expect(res.status).not.toHaveBeenCalled()
+    })
+})
+
+describe('agendaController.activar', () => {
+    it('debe responder 400 ante un ID inválido', async () => {
+        const { req, res, next } = crearMocks({}, { id: 'abc' })
+
+        await agendaController.activar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 400 }),
+        )
+        expect(agendaService.activar).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 404 si la agenda no existe', async () => {
+        vi.mocked(agendaService.activar).mockRejectedValue(
+            new AppError(404, 'Agenda no encontrada'),
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '999' })
+
+        await agendaController.activar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 404 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 409 si hay superposición con otra agenda activa', async () => {
+        vi.mocked(agendaService.activar).mockRejectedValue(
+            new AppError(
+                409,
+                'Ya existe una agenda activa para el profesional en ese día y horario',
+            ),
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.activar(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 409 }),
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('debe responder 200 con la agenda activada', async () => {
+        vi.mocked(agendaService.activar).mockResolvedValue(agenda as never)
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.activar(req, res, next)
+
+        expect(agendaService.activar).toHaveBeenCalledWith(10)
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(agenda)
+        expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe delegar el error inesperado al middleware con next', async () => {
+        const error = new Error('Error de DB')
+        vi.mocked(agendaService.activar).mockRejectedValue(error)
+
+        const { req, res, next } = crearMocks({}, { id: '10' })
+
+        await agendaController.activar(req, res, next)
 
         expect(next).toHaveBeenCalledWith(error)
         expect(res.status).not.toHaveBeenCalled()

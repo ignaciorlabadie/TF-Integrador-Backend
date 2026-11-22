@@ -2,7 +2,7 @@
  * Servicio de agendas médicas.
  *
  * Responsabilidades:
- * - Consultar, crear, actualizar y desactivar agendas.
+ * - Consultar, crear, actualizar, desactivar y activar agendas.
  * - Validar día, horario y duración de turnos.
  * - Evitar superposiciones entre agendas activas del mismo profesional.
  * - Proteger los turnos futuros ante cambios de disponibilidad.
@@ -58,7 +58,7 @@ export interface DatosAgenda {
 
 // profesionalId y activo quedan fuera a proposito:
 // el dueño de la agenda no se cambia desde actualizar()
-// y la baja se realiza con desactivar().
+// y el alta se realiza con activar().
 export type DatosActualizarAgenda = Partial<
     Pick<DatosAgenda, 'diaSemana' | 'horaInicio' | 'horaFin' | 'duracionTurno'>
 >
@@ -505,6 +505,41 @@ export class AgendaService {
 
         agenda.activo = false
 
+        await agenda.save()
+
+        return this.buscarPorId(id)
+    }
+
+    /**
+     * Reactiva una agenda desactivada. Es idempotente: si ya está activa,
+     * la devuelve sin guardar cambios.
+     *
+     * Antes de activarla verifica que no exista otra agenda activa del mismo
+     * profesional, día y rango horario. De existir, lanza 409.
+     *
+     * Devuelve la agenda con el profesional asociado.
+     */
+    async activar(id: number): Promise<Agenda | null> {
+        const agenda = await Agenda.findByPk(id)
+
+        if (!agenda) {
+            throw new AppError(404, MENSAJES.AGENDA_NO_ENCONTRADA)
+        }
+
+        if (agenda.activo) {
+            return this.buscarPorId(id)
+        }
+
+        const horario = validarHorario(
+            agenda.diaSemana,
+            normalizarHoraPersistida(agenda.horaInicio, 'horaInicio'),
+            normalizarHoraPersistida(agenda.horaFin, 'horaFin'),
+            agenda.duracionTurno,
+        )
+
+        await verificarSuperposicion(agenda.profesionalId, horario, agenda.id)
+
+        agenda.activo = true
         await agenda.save()
 
         return this.buscarPorId(id)
