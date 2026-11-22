@@ -252,4 +252,50 @@ router.patch(
     agendaController.desactivar,
 )
 
+/**
+ * @openapi
+ * /agendas/{id}/activar:
+ *   patch:
+ *     tags:
+ *       - Agendas
+ *     summary: Activa una agenda
+ *     description: >
+ *       Solo ADMIN. Idempotente: si ya está activa devuelve la agenda sin cambios.
+ *       Verifica que no exista otra agenda activa del mismo profesional,
+ *       día y rango horario. Responde 200 con la agenda completa.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         required: true
+ *         description: ID numérico de la agenda.
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *     responses:
+ *       '200':
+ *         description: Agenda activada (o ya activa).
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/Agenda'
+ *       '400':
+ *         $ref: '#/components/responses/DatosInvalidos'
+ *       '401':
+ *         $ref: '#/components/responses/NoAutenticado'
+ *       '403':
+ *         $ref: '#/components/responses/SinPermisos'
+ *       '404':
+ *         $ref: '#/components/responses/NoEncontrado'
+ *       '409':
+ *         $ref: '#/components/responses/Conflicto'
+ */
+router.patch(
+    '/:id/activar',
+    verificarToken,
+    verificarRol('ADMIN'),
+    agendaController.activar,
+)
+
 export default router

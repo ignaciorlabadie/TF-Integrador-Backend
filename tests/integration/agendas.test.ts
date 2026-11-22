@@ -456,3 +456,75 @@ describe('PATCH /api/agendas/:id/desactivar', () => {
         expect(respuesta.status).toBe(403)
     })
 })
+
+describe('PATCH /api/agendas/:id/activar', () => {
+    it('debe responder 401 sin token', async () => {
+        const respuesta = await request(app).patch('/api/agendas/10/activar')
+
+        expect(respuesta.status).toBe(401)
+    })
+
+    it('debe responder 400 ante un ID inválido', async () => {
+        const respuesta = await request(app)
+            .patch('/api/agendas/abc/activar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(400)
+    })
+
+    it('debe responder 404 si la agenda no existe', async () => {
+        vi.mocked(agendaModel.findByPk).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .patch('/api/agendas/999/activar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(404)
+    })
+
+    it('debe responder 409 si hay superposición con otra agenda activa', async () => {
+        vi.mocked(agendaModel.findByPk).mockResolvedValue({
+            ...agenda,
+            activo: false,
+            save: vi.fn(),
+        } as never)
+        vi.mocked(agendaModel.findOne).mockResolvedValue({ id: 99 } as never)
+
+        const respuesta = await request(app)
+            .patch('/api/agendas/10/activar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(409)
+        expect(respuesta.body.mensaje).toBe(
+            'Ya existe una agenda activa para el profesional en ese día y horario',
+        )
+    })
+
+    it('debe activar y responder 200 con la agenda completa', async () => {
+        const guardado = vi.fn()
+        const agendaInactiva = { ...agenda, activo: false, save: guardado }
+        const agendaActivada = { ...agenda, activo: true, save: guardado }
+
+        vi.mocked(agendaModel.findByPk)
+            .mockResolvedValueOnce(agendaInactiva as never)
+            .mockResolvedValueOnce(agendaActivada as never)
+        vi.mocked(agendaModel.findOne).mockResolvedValue(null)
+
+        const respuesta = await request(app)
+            .patch('/api/agendas/10/activar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(200)
+        expect(guardado).toHaveBeenCalledTimes(1)
+        expect(respuesta.body.activo).toBe(true)
+        expect(respuesta.body.id).toBe(10)
+    })
+
+    it('debe responder 403 a un PROFESIONAL', async () => {
+        const respuesta = await request(app)
+            .patch('/api/agendas/10/activar')
+            .set('Authorization', `Bearer ${tokenPara(1, 'PROFESIONAL')}`)
+
+        expect(respuesta.status).toBe(403)
+    })
+})
