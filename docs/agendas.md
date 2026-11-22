@@ -13,6 +13,7 @@ horarios en los que se pueden crear turnos.
 | `POST`  | `/api/agendas`                            | `ADMIN` | Crea una agenda           |
 | `PUT`   | `/api/agendas/:id`                        | `ADMIN` | Actualiza una agenda      |
 | `PATCH` | `/api/agendas/:id/desactivar`             | `ADMIN` | Desactiva una agenda      |
+| `PATCH` | `/api/agendas/:id/activar`                | `ADMIN` | Activa una agenda         |
 
 Todas requieren `Authorization: Bearer <token>`.
 
@@ -114,3 +115,24 @@ inactiva la operación es idempotente. Devuelve **`204` sin cuerpo**.
 | `403`  | El token no es de un `ADMIN`              |
 | `404`  | No existe la agenda                       |
 | `409`  | Conflicto con turnos u otra agenda activa |
+
+---
+
+## PATCH /api/agendas/:id/activar
+
+Reactiva una agenda inactiva. Es idempotente: si ya estaba activa devuelve la
+agenda sin cambios. Verifica que no exista otra agenda activa del mismo
+profesional, día y rango horario.
+
+Devuelve **`200` con la agenda completa** (incluye su profesional). No requiere
+body.
+
+### Errores
+
+| Código | Causa                                                        |
+| ------ | ------------------------------------------------------------ |
+| `400`  | El ID no es un entero positivo                               |
+| `401`  | Falta el token                                               |
+| `403`  | El token no es de un `ADMIN`                                 |
+| `404`  | No existe la agenda                                          |
+| `409`  | Ya hay una agenda activa para ese profesional, día y horario |
