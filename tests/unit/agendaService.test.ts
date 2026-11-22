@@ -534,3 +534,80 @@ describe('agendaService.desactivar', () => {
         expect(resultado).toEqual(agenda)
     })
 })
+
+describe('agendaService.activar', () => {
+    it('debe rechazar con 404 si la agenda no existe', async () => {
+        vi.mocked(agendaModel.findByPk).mockResolvedValue(null)
+
+        await expect(agendaService.activar(999)).rejects.toMatchObject({
+            statusCode: 404,
+            message: 'Agenda no encontrada',
+        })
+        expect(agendaModel.findOne).not.toHaveBeenCalled()
+    })
+
+    it('debe ser idempotente si ya está activa', async () => {
+        const agenda = { ...agendaActiva, save: vi.fn() }
+        vi.mocked(agendaModel.findByPk)
+            .mockResolvedValueOnce(agenda as never)
+            .mockResolvedValueOnce(agenda as never)
+
+        const resultado = await agendaService.activar(10)
+
+        expect(agendaModel.findOne).not.toHaveBeenCalled()
+        expect(turnoModel.findAll).not.toHaveBeenCalled()
+        expect(agenda.save).not.toHaveBeenCalled()
+        expect(resultado).toEqual(agenda)
+    })
+
+    it('debe activar la agenda, guardarla y devolverla con su profesional', async () => {
+        const guardado = vi.fn()
+        const agendaInactiva = {
+            ...agendaActiva,
+            activo: false,
+            save: guardado,
+        }
+        const agendaActivada = {
+            ...agendaActiva,
+            activo: true,
+            save: guardado,
+        }
+        vi.mocked(agendaModel.findByPk)
+            .mockResolvedValueOnce(agendaInactiva as never)
+            .mockResolvedValueOnce(agendaActivada as never)
+        vi.mocked(agendaModel.findOne).mockResolvedValue(null)
+
+        const resultado = await agendaService.activar(10)
+
+        expect(agendaModel.findOne).toHaveBeenCalledWith({
+            where: {
+                profesionalId: 1,
+                diaSemana: 'LUNES',
+                activo: true,
+                horaInicio: { [Op.lt]: '12:00' },
+                horaFin: { [Op.gt]: '08:00' },
+                id: { [Op.ne]: 10 },
+            },
+        })
+        expect(agendaInactiva.activo).toBe(true)
+        expect(guardado).toHaveBeenCalledTimes(1)
+        expect(turnoModel.findAll).not.toHaveBeenCalled()
+        expect(resultado).toEqual(agendaActivada)
+    })
+
+    it('debe rechazar con 409 si hay superposición con otra agenda activa', async () => {
+        const agendaInactiva = { ...agendaActiva, activo: false, save: vi.fn() }
+        vi.mocked(agendaModel.findByPk).mockResolvedValue(
+            agendaInactiva as never,
+        )
+        vi.mocked(agendaModel.findOne).mockResolvedValue({ id: 99 } as never)
+
+        await expect(agendaService.activar(10)).rejects.toMatchObject({
+            statusCode: 409,
+            message:
+                'Ya existe una agenda activa para el profesional en ese día y horario',
+        })
+        expect(agendaInactiva.activo).toBe(false)
+        expect(agendaInactiva.save).not.toHaveBeenCalled()
+    })
+})
