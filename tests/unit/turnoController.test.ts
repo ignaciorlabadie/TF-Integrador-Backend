@@ -8,6 +8,7 @@ vi.mock('../../src/services/turnoService.js', () => ({
         crear: vi.fn(),
         actualizar: vi.fn(),
         cancelar: vi.fn(),
+        obtenerAgendaConValidacion: vi.fn(),
     },
 }))
 
@@ -18,11 +19,13 @@ function crearMocks(
     body: object = {},
     params: Record<string, string> = {},
     query: Record<string, string> = {},
+    usuario: { id: number; email: string; rol: string } = { id: 1, email: 'test@test.com', rol: 'PACIENTE' }
 ) {
     const req = {
         body,
         params,
         query,
+        usuario,
     } as unknown as Request
 
     const res = {
@@ -60,21 +63,26 @@ beforeEach(() => {
 })
 
 describe('turnoController.listar', () => {
-    it('llama al servicio sin filtros si no hay query', async () => {
+    it('llama al servicio con filtro de paciente para PACIENTE por defecto', async () => {
         vi.mocked(turnoService.listar).mockResolvedValue([turno] as never)
 
         const { req, res, next } = crearMocks()
 
         await turnoController.listar(req, res, next)
 
-        expect(turnoService.listar).toHaveBeenCalledWith({})
+        expect(turnoService.listar).toHaveBeenCalledWith({ pacienteId: 1 })
         expect(res.status).toHaveBeenCalledWith(200)
     })
 
-    it('pasa solo los filtros presentes', async () => {
+    it('pasa solo los filtros presentes para ADMIN', async () => {
         vi.mocked(turnoService.listar).mockResolvedValue([turno] as never)
 
-        const { req, res, next } = crearMocks({}, {}, { fecha: '2027-10-25' })
+        const { req, res, next } = crearMocks(
+            {},
+            {},
+            { fecha: '2027-10-25' },
+            { id: 1, email: 'admin@test.com', rol: 'ADMIN' }
+        )
 
         await turnoController.listar(req, res, next)
 
@@ -83,7 +91,37 @@ describe('turnoController.listar', () => {
         })
     })
 
-    it('responde 200 con los filtros parseados', async () => {
+    it('PACIENTE filtra solo por pacienteId', async () => {
+        vi.mocked(turnoService.listar).mockResolvedValue([turno] as never)
+
+        const { req, res, next } = crearMocks(
+            {},
+            {},
+            {},
+            { id: 4, email: 'patient@test.com', rol: 'PACIENTE' }
+        )
+
+        await turnoController.listar(req, res, next)
+
+        expect(turnoService.listar).toHaveBeenCalledWith({ pacienteId: 4 })
+    })
+
+    it('PROFESIONAL filtra solo por profesionalId', async () => {
+        vi.mocked(turnoService.listar).mockResolvedValue([turno] as never)
+
+        const { req, res, next } = crearMocks(
+            {},
+            {},
+            {},
+            { id: 2, email: 'prof@test.com', rol: 'PROFESIONAL' }
+        )
+
+        await turnoController.listar(req, res, next)
+
+        expect(turnoService.listar).toHaveBeenCalledWith({ profesionalId: 2 })
+    })
+
+    it('responde 200 con los filtros parseados para ADMIN', async () => {
         vi.mocked(turnoService.listar).mockResolvedValue([turno] as never)
 
         const { req, res, next } = crearMocks(
@@ -95,6 +133,7 @@ describe('turnoController.listar', () => {
                 fecha: '2027-10-25',
                 estado: 'CONFIRMADO',
             },
+            { id: 1, email: 'admin@test.com', rol: 'ADMIN' }
         )
 
         await turnoController.listar(req, res, next)
@@ -161,6 +200,18 @@ describe('turnoController.buscarPorId', () => {
 })
 
 describe('turnoController.crear', () => {
+    beforeEach(() => {
+        vi.mocked(turnoService.obtenerAgendaConValidacion).mockResolvedValue({
+            id: 3,
+            profesionalId: 2,
+            diaSemana: 'LUNES',
+            horaInicio: '09:00',
+            horaFin: '17:00',
+            duracionTurno: 30,
+            activo: true,
+        } as never)
+    })
+
     it('responde 400 si faltan datos obligatorios', async () => {
         const { req, res, next } = crearMocks({
             ...datosCreacion,
@@ -175,7 +226,7 @@ describe('turnoController.crear', () => {
         expect(turnoService.crear).not.toHaveBeenCalled()
     })
 
-    it('responde 201 con los datos normalizados', async () => {
+    it('responde 201 con los datos normalizados y agenda validada', async () => {
         vi.mocked(turnoService.crear).mockResolvedValue(turno as never)
 
         const { req, res, next } = crearMocks({
@@ -187,6 +238,11 @@ describe('turnoController.crear', () => {
 
         await turnoController.crear(req, res, next)
 
+        expect(turnoService.obtenerAgendaConValidacion).toHaveBeenCalledWith(
+            2,
+            3,
+            'PACIENTE'
+        )
         expect(turnoService.crear).toHaveBeenCalledWith({
             ...datosCreacion,
             pacienteId: 4,
@@ -198,7 +254,7 @@ describe('turnoController.crear', () => {
         expect(res.json).toHaveBeenCalledWith(turno)
     })
 
-    it('convierte las observaciones a string', async () => {
+    it('convierte las observaciones a string y valida agenda', async () => {
         vi.mocked(turnoService.crear).mockResolvedValue(turno as never)
 
         const { req, res, next } = crearMocks({
@@ -208,22 +264,66 @@ describe('turnoController.crear', () => {
 
         await turnoController.crear(req, res, next)
 
+        expect(turnoService.obtenerAgendaConValidacion).toHaveBeenCalledWith(
+            2,
+            3,
+            'PACIENTE'
+        )
         expect(turnoService.crear).toHaveBeenCalledWith({
             ...datosCreacion,
             observaciones: 'Traer análisis',
         })
         expect(res.status).toHaveBeenCalledWith(201)
+        expect(res.json).toHaveBeenCalledWith(turno)
     })
 
-    it('deriva el error del servicio al middleware', async () => {
-        const error = new Error('Conflicto')
-        vi.mocked(turnoService.crear).mockRejectedValue(error)
+    it('deriva error de agenda no encontrada al middleware', async () => {
+        vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
+            new Error('Agenda no encontrada')
+        )
 
         const { req, res, next } = crearMocks(datosCreacion)
 
         await turnoController.crear(req, res, next)
 
-        expect(next).toHaveBeenCalledWith(error)
+        expect(next).toHaveBeenCalledWith(new Error('Agenda no encontrada'))
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('devuelve error 403 si la agenda no pertenece al profesional', async () => {
+        const { AppError } = await import('../../src/errors/AppError.js')
+
+        vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
+            new AppError(403, 'La agenda no pertenece a este profesional')
+        )
+
+        const { req, res, next } = crearMocks(datosCreacion)
+
+        await turnoController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 })
+        )
+        expect(res.status).not.toHaveBeenCalled()
+    })
+
+    it('devuelve error 403 si la agenda no está activa', async () => {
+        const { AppError } = await import('../../src/errors/AppError.js')
+
+        vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
+            new AppError(403, 'La agenda no está activa')
+        )
+
+        const { req, res, next } = crearMocks({
+            ...datosCreacion,
+            agendaId: 999,
+        })
+
+        await turnoController.crear(req, res, next)
+
+        expect(next).toHaveBeenCalledWith(
+            expect.objectContaining({ statusCode: 403 })
+        )
         expect(res.status).not.toHaveBeenCalled()
     })
 })
@@ -256,7 +356,7 @@ describe('turnoController.actualizar', () => {
 
         const { req, res, next } = crearMocks(
             { motivo: 'Control actualizado' },
-            { id: '5' },
+            { id: '5' }
         )
 
         await turnoController.actualizar(req, res, next)
@@ -284,6 +384,7 @@ describe('turnoController.actualizar', () => {
 
         expect(turnoService.actualizar).toHaveBeenCalledWith(5, datos)
         expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(turno)
     })
 
     it('deriva el error del servicio al middleware', async () => {

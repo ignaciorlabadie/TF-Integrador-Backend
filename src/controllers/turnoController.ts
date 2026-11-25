@@ -51,21 +51,18 @@ function validarDatosActualizacion(body: Request['body']) {
 export class TurnoController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
-            const { rol } = req.usuario!
+            const { rol, id: usuarioId } = req.usuario!
             const filtros: Record<string, string | number> = {}
 
-            // ADMIN ve todos los turnos
-            // PACIENTE ve solo sus turnos (filtra por pacienteId)
-            // PROFESIONAL ve solo turnos de sus agendas (filtra por profesionalId)
+            // ADMIN ve todos los turnos (con filtros opcionales por query)
+            // PACIENTE ve solo sus propios turnos (filtra por su pacienteId del token)
+            // PROFESIONAL ve solo turnos de sus agendas (filtra por su profesionalId del token)
             if (rol === 'PACIENTE') {
-                if (req.query.pacienteId !== undefined) {
-                    filtros.pacienteId = Number(req.query.pacienteId)
-                }
+                filtros.pacienteId = usuarioId
             } else if (rol === 'PROFESIONAL') {
-                if (req.query.profesionalId !== undefined) {
-                    filtros.profesionalId = Number(req.query.profesionalId)
-                }
+                filtros.profesionalId = usuarioId
             } else if (rol === 'ADMIN') {
+                // ADMIN puede usar filtros opcionales por query
                 if (req.query.profesionalId !== undefined) {
                     filtros.profesionalId = Number(req.query.profesionalId)
                 }
@@ -109,7 +106,7 @@ export class TurnoController {
             const agenda = await turnoService.obtenerAgendaConValidacion(
                 datos.profesionalId,
                 datos.agendaId,
-                rol
+                rol,
             )
 
             // Asociar el agendaId validado

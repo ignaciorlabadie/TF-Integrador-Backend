@@ -42,7 +42,7 @@ export class TurnoService {
     async obtenerAgendaConValidacion(
         profesionalId: number,
         agendaId: number,
-        rol: string
+        rol: string,
     ): Promise<Agenda> {
         const agenda = await Agenda.findByPk(agendaId)
 
