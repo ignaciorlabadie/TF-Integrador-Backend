@@ -51,22 +51,30 @@ function validarDatosActualizacion(body: Request['body']) {
 export class TurnoController {
     async listar(req: Request, res: Response, next: NextFunction) {
         try {
+            const { rol, id: usuarioId } = req.usuario!
             const filtros: Record<string, string | number> = {}
 
-            if (req.query.profesionalId !== undefined) {
-                filtros.profesionalId = Number(req.query.profesionalId)
-            }
-
-            if (req.query.pacienteId !== undefined) {
-                filtros.pacienteId = Number(req.query.pacienteId)
-            }
-
-            if (req.query.fecha !== undefined) {
-                filtros.fecha = String(req.query.fecha)
-            }
-
-            if (req.query.estado !== undefined) {
-                filtros.estado = String(req.query.estado)
+            // ADMIN ve todos los turnos (con filtros opcionales por query)
+            // PACIENTE ve solo sus propios turnos (filtra por su pacienteId del token)
+            // PROFESIONAL ve solo turnos de sus agendas (filtra por su profesionalId del token)
+            if (rol === 'PACIENTE') {
+                filtros.pacienteId = usuarioId
+            } else if (rol === 'PROFESIONAL') {
+                filtros.profesionalId = usuarioId
+            } else if (rol === 'ADMIN') {
+                // ADMIN puede usar filtros opcionales por query
+                if (req.query.profesionalId !== undefined) {
+                    filtros.profesionalId = Number(req.query.profesionalId)
+                }
+                if (req.query.pacienteId !== undefined) {
+                    filtros.pacienteId = Number(req.query.pacienteId)
+                }
+                if (req.query.fecha !== undefined) {
+                    filtros.fecha = String(req.query.fecha)
+                }
+                if (req.query.estado !== undefined) {
+                    filtros.estado = String(req.query.estado)
+                }
             }
 
             const turnos = await turnoService.listar(filtros)
@@ -91,7 +99,18 @@ export class TurnoController {
 
     async crear(req: Request, res: Response, next: NextFunction) {
         try {
+            const { rol } = req.usuario!
             const datos = validarDatosCreacion(req.body)
+
+            // Validar que el agendaId pertenezca al profesional y esté activa
+            const agenda = await turnoService.obtenerAgendaConValidacion(
+                datos.profesionalId,
+                datos.agendaId,
+                rol,
+            )
+
+            // Asociar el agendaId validado
+            datos.agendaId = agenda.id
 
             const turno = await turnoService.crear(datos)
 
