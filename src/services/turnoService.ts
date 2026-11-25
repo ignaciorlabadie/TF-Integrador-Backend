@@ -39,6 +39,30 @@ const incluirRelaciones = () => [
 ]
 
 export class TurnoService {
+    async obtenerAgendaConValidacion(
+        profesionalId: number,
+        agendaId: number,
+        rol: string
+    ): Promise<Agenda> {
+        const agenda = await Agenda.findByPk(agendaId)
+
+        if (!agenda) {
+            throw new AppError(404, 'Agenda no encontrada')
+        }
+
+        // Verificar que el agenda pertenezca al profesional
+        if (agenda.profesionalId !== profesionalId) {
+            throw new AppError(403, 'La agenda no pertenece a este profesional')
+        }
+
+        // Verificar que la agenda esté activa (solo para pacientes y profesionales)
+        if (rol !== 'ADMIN' && !agenda.activo) {
+            throw new AppError(403, 'La agenda no está activa')
+        }
+
+        return agenda
+    }
+
     async crear(datos: CrearTurno) {
         const turnoExistente = await Turno.findOne({
             where: {

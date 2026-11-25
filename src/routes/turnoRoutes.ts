@@ -66,7 +66,7 @@ const router = Router()
  *       '403':
  *         $ref: '#/components/responses/SinPermisos'
  */
-router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
+router.get('/', verificarToken, turnoController.listar)
 
 /**
  * @openapi
@@ -104,7 +104,6 @@ router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
 router.get(
     '/:id',
     verificarToken,
-    verificarRol('ADMIN'),
     turnoController.buscarPorId,
 )
 
