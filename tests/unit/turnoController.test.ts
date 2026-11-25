@@ -19,7 +19,11 @@ function crearMocks(
     body: object = {},
     params: Record<string, string> = {},
     query: Record<string, string> = {},
-    usuario: { id: number; email: string; rol: string } = { id: 1, email: 'test@test.com', rol: 'PACIENTE' }
+    usuario: { id: number; email: string; rol: string } = {
+        id: 1,
+        email: 'test@test.com',
+        rol: 'PACIENTE',
+    },
 ) {
     const req = {
         body,
@@ -81,7 +85,7 @@ describe('turnoController.listar', () => {
             {},
             {},
             { fecha: '2027-10-25' },
-            { id: 1, email: 'admin@test.com', rol: 'ADMIN' }
+            { id: 1, email: 'admin@test.com', rol: 'ADMIN' },
         )
 
         await turnoController.listar(req, res, next)
@@ -98,7 +102,7 @@ describe('turnoController.listar', () => {
             {},
             {},
             {},
-            { id: 4, email: 'patient@test.com', rol: 'PACIENTE' }
+            { id: 4, email: 'patient@test.com', rol: 'PACIENTE' },
         )
 
         await turnoController.listar(req, res, next)
@@ -113,7 +117,7 @@ describe('turnoController.listar', () => {
             {},
             {},
             {},
-            { id: 2, email: 'prof@test.com', rol: 'PROFESIONAL' }
+            { id: 2, email: 'prof@test.com', rol: 'PROFESIONAL' },
         )
 
         await turnoController.listar(req, res, next)
@@ -133,7 +137,7 @@ describe('turnoController.listar', () => {
                 fecha: '2027-10-25',
                 estado: 'CONFIRMADO',
             },
-            { id: 1, email: 'admin@test.com', rol: 'ADMIN' }
+            { id: 1, email: 'admin@test.com', rol: 'ADMIN' },
         )
 
         await turnoController.listar(req, res, next)
@@ -241,7 +245,7 @@ describe('turnoController.crear', () => {
         expect(turnoService.obtenerAgendaConValidacion).toHaveBeenCalledWith(
             2,
             3,
-            'PACIENTE'
+            'PACIENTE',
         )
         expect(turnoService.crear).toHaveBeenCalledWith({
             ...datosCreacion,
@@ -267,7 +271,7 @@ describe('turnoController.crear', () => {
         expect(turnoService.obtenerAgendaConValidacion).toHaveBeenCalledWith(
             2,
             3,
-            'PACIENTE'
+            'PACIENTE',
         )
         expect(turnoService.crear).toHaveBeenCalledWith({
             ...datosCreacion,
@@ -279,7 +283,7 @@ describe('turnoController.crear', () => {
 
     it('deriva error de agenda no encontrada al middleware', async () => {
         vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
-            new Error('Agenda no encontrada')
+            new Error('Agenda no encontrada'),
         )
 
         const { req, res, next } = crearMocks(datosCreacion)
@@ -294,7 +298,7 @@ describe('turnoController.crear', () => {
         const { AppError } = await import('../../src/errors/AppError.js')
 
         vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
-            new AppError(403, 'La agenda no pertenece a este profesional')
+            new AppError(403, 'La agenda no pertenece a este profesional'),
         )
 
         const { req, res, next } = crearMocks(datosCreacion)
@@ -302,7 +306,7 @@ describe('turnoController.crear', () => {
         await turnoController.crear(req, res, next)
 
         expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 403 })
+            expect.objectContaining({ statusCode: 403 }),
         )
         expect(res.status).not.toHaveBeenCalled()
     })
@@ -311,7 +315,7 @@ describe('turnoController.crear', () => {
         const { AppError } = await import('../../src/errors/AppError.js')
 
         vi.mocked(turnoService.obtenerAgendaConValidacion).mockRejectedValue(
-            new AppError(403, 'La agenda no está activa')
+            new AppError(403, 'La agenda no está activa'),
         )
 
         const { req, res, next } = crearMocks({
@@ -322,7 +326,7 @@ describe('turnoController.crear', () => {
         await turnoController.crear(req, res, next)
 
         expect(next).toHaveBeenCalledWith(
-            expect.objectContaining({ statusCode: 403 })
+            expect.objectContaining({ statusCode: 403 }),
         )
         expect(res.status).not.toHaveBeenCalled()
     })
@@ -356,7 +360,7 @@ describe('turnoController.actualizar', () => {
 
         const { req, res, next } = crearMocks(
             { motivo: 'Control actualizado' },
-            { id: '5' }
+            { id: '5' },
         )
 
         await turnoController.actualizar(req, res, next)
