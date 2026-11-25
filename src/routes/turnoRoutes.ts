@@ -2,6 +2,7 @@ import { Router } from 'express'
 
 import { turnoController } from '../controllers/turnoController.js'
 import { verificarToken } from '../middlewares/authMiddleware.js'
+import { verificarRol } from '../middlewares/rolMiddleware.js'
 
 const router = Router()
 
@@ -65,7 +66,7 @@ const router = Router()
  *       '403':
  *         $ref: '#/components/responses/SinPermisos'
  */
-router.get('/', verificarToken, turnoController.listar)
+router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
 
 /**
  * @openapi
@@ -100,7 +101,12 @@ router.get('/', verificarToken, turnoController.listar)
  *       '404':
  *         $ref: '#/components/responses/NoEncontrado'
  */
-router.get('/:id', verificarToken, turnoController.buscarPorId)
+router.get(
+    '/:id',
+    verificarToken,
+    verificarRol('ADMIN'),
+    turnoController.buscarPorId,
+)
 
 /**
  * @openapi
