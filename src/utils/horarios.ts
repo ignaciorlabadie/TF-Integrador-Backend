@@ -75,6 +75,30 @@ export function diaSemanaDeFecha(fecha: string): DiaSemana | null {
     return DIAS_POR_INDICE[fechaParseada.getUTCDay()] ?? null
 }
 
+export function minutosAHora(minutos: number): string {
+    const horas = Math.floor(minutos / 60)
+    const resto = minutos % 60
+
+    return `${String(horas).padStart(2, '0')}:${String(resto).padStart(2, '0')}`
+}
+
+/**
+ * Fecha (YYYY-MM-DD) y minutos del día actuales en la hora local del server.
+ * Se usa la hora local y no UTC porque los turnos se cargan en hora local:
+ * con UTC, en Argentina después de las 21 "hoy" ya sería mañana.
+ */
+export function ahoraLocal(): { fecha: string; minutos: number } {
+    const ahora = new Date()
+    const anio = ahora.getFullYear()
+    const mes = String(ahora.getMonth() + 1).padStart(2, '0')
+    const dia = String(ahora.getDate()).padStart(2, '0')
+
+    return {
+        fecha: `${anio}-${mes}-${dia}`,
+        minutos: ahora.getHours() * 60 + ahora.getMinutes(),
+    }
+}
+
 export interface BloqueHorarioValidado {
     horaInicio: string
     horaFin: string

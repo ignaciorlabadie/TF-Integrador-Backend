@@ -74,7 +74,7 @@ describe('GET /profesionales', () => {
         expect(profesionalModel.findAll).not.toHaveBeenCalled()
     })
 
-    it('debe responder 200 con la lista para cualquier usuario autenticado', async () => {
+    it('debe responder a un PACIENTE solo los datos públicos', async () => {
         vi.mocked(profesionalModel.findAll).mockResolvedValue([perfil] as never)
 
         const respuesta = await request(app)
@@ -82,8 +82,29 @@ describe('GET /profesionales', () => {
             .set('Authorization', `Bearer ${tokenPara(1, 'PACIENTE')}`)
 
         expect(respuesta.status).toBe(200)
-        expect(respuesta.body).toHaveLength(1)
-        expect(respuesta.body[0].id).toBe(3)
+        expect(respuesta.body).toEqual([
+            {
+                id: 3,
+                nombre: 'Ana',
+                apellido: 'Gomez',
+                especialidad: 'Cardiología',
+            },
+        ])
+    })
+
+    it('debe responder a un ADMIN todos los datos', async () => {
+        vi.mocked(profesionalModel.findAll).mockResolvedValue([perfil] as never)
+
+        const respuesta = await request(app)
+            .get('/api/profesionales')
+            .set('Authorization', `Bearer ${tokenPara(1, 'ADMIN')}`)
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body[0]).toMatchObject({
+            dni: '12345678',
+            telefono: '+5491112345678',
+            matricula: 'MP-12345',
+        })
     })
 })
 
@@ -139,7 +160,7 @@ describe('GET /profesionales/:id', () => {
         expect(respuesta.status).toBe(404)
     })
 
-    it('debe responder 200 con los datos del profesional', async () => {
+    it('debe ocultar los datos sensibles a un PACIENTE', async () => {
         vi.mocked(profesionalModel.findByPk).mockResolvedValue(perfil as never)
 
         const respuesta = await request(app)
@@ -148,6 +169,21 @@ describe('GET /profesionales/:id', () => {
 
         expect(respuesta.status).toBe(200)
         expect(respuesta.body.id).toBe(3)
+        expect(respuesta.body).not.toHaveProperty('dni')
+        expect(respuesta.body).not.toHaveProperty('telefono')
+        expect(respuesta.body).not.toHaveProperty('matricula')
+        expect(respuesta.body).not.toHaveProperty('usuarioId')
+    })
+
+    it('debe mostrar el perfil completo al profesional dueño', async () => {
+        vi.mocked(profesionalModel.findByPk).mockResolvedValue(perfil as never)
+
+        const respuesta = await request(app)
+            .get('/api/profesionales/3')
+            .set('Authorization', `Bearer ${tokenPara(77, 'PROFESIONAL')}`)
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body.dni).toBe('12345678')
     })
 })
 

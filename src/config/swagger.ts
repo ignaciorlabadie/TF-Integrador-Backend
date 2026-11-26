@@ -217,6 +217,19 @@ const profesionalSchema = {
     },
 }
 
+const profesionalPublicoSchema = {
+    type: 'object',
+    description:
+        'Vista reducida del profesional que reciben PACIENTE y PROFESIONAL (salvo su propio perfil). No incluye DNI, teléfono, matrícula ni cuenta asociada.',
+    required: ['id', 'nombre', 'apellido', 'especialidad'],
+    properties: {
+        id: idEntero,
+        nombre: { type: 'string', example: 'Maria' },
+        apellido: { type: 'string', example: 'Lopez' },
+        especialidad: { type: 'string', example: 'Clínica médica' },
+    },
+}
+
 const crearProfesionalSchema = {
     type: 'object',
     required: [
@@ -579,15 +592,8 @@ const turnoSchema = {
 const crearTurnoSchema = {
     type: 'object',
     description:
-        'El estado del turno se define automáticamente como CONFIRMADO.',
-    required: [
-        'pacienteId',
-        'profesionalId',
-        'agendaId',
-        'fecha',
-        'hora',
-        'motivo',
-    ],
+        'El estado del turno se define automáticamente como CONFIRMADO. pacienteId es obligatorio solo para ADMIN; para PACIENTE se toma de su perfil.',
+    required: ['profesionalId', 'agendaId', 'fecha', 'hora', 'motivo'],
     properties: {
         pacienteId: { type: 'integer', minimum: 1, example: 4 },
         profesionalId: { type: 'integer', minimum: 1, example: 2 },
@@ -1011,6 +1017,7 @@ const options = {
                     example: 'PROFESIONAL',
                 },
                 Profesional: profesionalSchema,
+                ProfesionalPublico: profesionalPublicoSchema,
                 CrearProfesionalRequest: crearProfesionalSchema,
                 ActualizarProfesionalRequest: actualizarProfesionalSchema,
                 Espacio: espacioSchema,
@@ -1067,6 +1074,14 @@ const options = {
                 },
                 Turno: turnoSchema,
                 CrearTurnoRequest: crearTurnoSchema,
+                HorarioLibre: {
+                    type: 'object',
+                    required: ['agendaId', 'hora'],
+                    properties: {
+                        agendaId: { type: 'integer', example: 1 },
+                        hora: { type: 'string', example: '09:30' },
+                    },
+                },
                 ActualizarTurnoRequest: actualizarTurnoSchema,
                 Estudio: estudioSchema,
                 CrearEstudioRequest: crearEstudioSchema,

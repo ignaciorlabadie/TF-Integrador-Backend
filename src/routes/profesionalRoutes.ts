@@ -13,6 +13,10 @@ const router = Router()
  *     tags:
  *       - Profesionales
  *     summary: Lista todos los profesionales
+ *     description: >
+ *       ADMIN recibe todos los datos. PACIENTE y PROFESIONAL reciben solo id,
+ *       nombre, apellido y especialidad, salvo el profesional autenticado,
+ *       que ve su propio perfil completo.
  *     security:
  *       - bearerAuth: []
  *     responses:
@@ -23,7 +27,9 @@ const router = Router()
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Profesional'
+ *                 oneOf:
+ *                   - $ref: '#/components/schemas/Profesional'
+ *                   - $ref: '#/components/schemas/ProfesionalPublico'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
  */
@@ -63,6 +69,9 @@ router.get(
  *     tags:
  *       - Profesionales
  *     summary: Obtiene un profesional por ID
+ *     description: >
+ *       ADMIN y el propio profesional reciben todos los datos. El resto recibe
+ *       la vista pública (id, nombre, apellido y especialidad).
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -79,7 +88,9 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Profesional'
+ *               oneOf:
+ *                 - $ref: '#/components/schemas/Profesional'
+ *                 - $ref: '#/components/schemas/ProfesionalPublico'
  *       '400':
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
