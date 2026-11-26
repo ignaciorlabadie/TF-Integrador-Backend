@@ -21,6 +21,22 @@ export const MENSAJES = {
     // Turnos
     TURNO_YA_EXISTE_EN_ESA_FECHA_HORA:
         'Ya existe un turno para ese profesional en la fecha y hora seleccionada',
+    TURNO_NO_ENCONTRADO: 'Turno no encontrado',
+    TURNO_EN_EL_PASADO:
+        'No se puede reservar un turno en una fecha u hora pasada',
+    TURNO_AGENDA_DE_OTRO_PROFESIONAL:
+        'La agenda no pertenece al profesional indicado',
+    TURNO_AGENDA_INACTIVA: 'La agenda no está activa',
+    TURNO_DIA_NO_COINCIDE:
+        'La fecha no corresponde al día de atención de la agenda',
+    TURNO_FUERA_DE_HORARIO:
+        'El horario no corresponde a un turno disponible de la agenda',
+    TURNO_NO_CANCELABLE:
+        'Solo se pueden cancelar turnos pendientes o confirmados',
+    TURNO_ESTADO_INVALIDO: 'El estado del turno no es válido',
+    PACIENTE_NO_ENCONTRADO: 'Paciente no encontrado',
+    PERFIL_PACIENTE_REQUERIDO:
+        'La cuenta no tiene un perfil de paciente asociado',
 
     // Validaciones de dominio compartidas
     DIA_SEMANA_INVALIDO: 'El día de la semana no es válido',

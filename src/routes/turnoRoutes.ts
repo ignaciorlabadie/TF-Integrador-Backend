@@ -14,8 +14,12 @@ const router = Router()
  *       - Turnos
  *     summary: Lista turnos
  *     description: >
- *       Solo ADMIN. Los resultados se ordenan por fecha y hora ascendente e
- *       incluyen paciente, profesional y agenda.
+ *       ADMIN ve todos los turnos y puede filtrar por profesionalId,
+ *       pacienteId, fecha y estado. PACIENTE ve solo los suyos y PROFESIONAL
+ *       solo los de su perfil; ambos pueden filtrar por fecha y estado, y los
+ *       filtros profesionalId/pacienteId se ignoran. Al PACIENTE el
+ *       profesional le llega con sus datos públicos. Los resultados se ordenan
+ *       por fecha y hora ascendente e incluyen paciente, profesional y agenda.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -61,12 +65,58 @@ const router = Router()
  *               type: array
  *               items:
  *                 $ref: '#/components/schemas/Turno'
+ *       '400':
+ *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
- *       '403':
- *         $ref: '#/components/responses/SinPermisos'
  */
-router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
+router.get('/', verificarToken, turnoController.listar)
+
+/**
+ * @openapi
+ * /turnos/horarios-libres:
+ *   get:
+ *     tags:
+ *       - Turnos
+ *     summary: Horarios libres de un profesional en una fecha
+ *     description: >
+ *       Arma la grilla de turnos de las agendas activas del profesional para
+ *       el día de la semana de la fecha y descarta los horarios ocupados y,
+ *       si la fecha es hoy, los que ya pasaron. Una fecha pasada devuelve una
+ *       lista vacía.
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: profesionalId
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: integer
+ *           minimum: 1
+ *       - name: fecha
+ *         in: query
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: date
+ *           example: '2026-12-01'
+ *     responses:
+ *       '200':
+ *         description: Horarios disponibles ordenados por hora.
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/HorarioLibre'
+ *       '400':
+ *         $ref: '#/components/responses/DatosInvalidos'
+ *       '401':
+ *         $ref: '#/components/responses/NoAutenticado'
+ *       '404':
+ *         $ref: '#/components/responses/NoEncontrado'
+ */
+router.get('/horarios-libres', verificarToken, turnoController.horariosLibres)
 
 /**
  * @openapi
@@ -75,6 +125,9 @@ router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
  *     tags:
  *       - Turnos
  *     summary: Obtiene un turno por ID
+ *     description: >
+ *       ADMIN puede ver cualquier turno. PACIENTE y PROFESIONAL solo los
+ *       suyos; un turno ajeno responde 404.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -96,17 +149,10 @@ router.get('/', verificarToken, verificarRol('ADMIN'), turnoController.listar)
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
- *       '403':
- *         $ref: '#/components/responses/SinPermisos'
  *       '404':
  *         $ref: '#/components/responses/NoEncontrado'
  */
-router.get(
-    '/:id',
-    verificarToken,
-    verificarRol('ADMIN'),
-    turnoController.buscarPorId,
-)
+router.get('/:id', verificarToken, turnoController.buscarPorId)
 
 /**
  * @openapi
@@ -116,9 +162,13 @@ router.get(
  *       - Turnos
  *     summary: Crea un turno
  *     description: >
- *       El estado se define automáticamente como CONFIRMADO. Falla con 409 si
- *       el profesional ya tiene un turno en esa fecha y hora o si la agenda
- *       no está disponible.
+ *       Solo PACIENTE y ADMIN. Para un PACIENTE el pacienteId sale de su
+ *       perfil y se ignora el del body; el ADMIN debe enviarlo. La fecha y
+ *       hora no pueden ser pasadas, la agenda debe ser del profesional, estar
+ *       activa, coincidir con el día de la semana, y la hora debe caer en la
+ *       grilla de la agenda (horaInicio + n × duracionTurno). El estado se
+ *       define como CONFIRMADO. Falla con 409 si el horario ya está ocupado o
+ *       la agenda está inactiva.
  *     security:
  *       - bearerAuth: []
  *     requestBody:
@@ -138,12 +188,19 @@ router.get(
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
+ *       '403':
+ *         $ref: '#/components/responses/SinPermisos'
  *       '404':
  *         $ref: '#/components/responses/NoEncontrado'
  *       '409':
  *         $ref: '#/components/responses/Conflicto'
  */
-router.post('/', verificarToken, turnoController.crear)
+router.post(
+    '/',
+    verificarToken,
+    verificarRol('ADMIN', 'PACIENTE'),
+    turnoController.crear,
+)
 
 /**
  * @openapi
@@ -153,8 +210,9 @@ router.post('/', verificarToken, turnoController.crear)
  *       - Turnos
  *     summary: Actualiza un turno
  *     description: >
- *       Permite cambiar fecha, hora, motivo, observaciones y estado. Si cambia
- *       la fecha o la hora se reinicia el registro de recordatorio enviado.
+ *       Solo ADMIN. Permite cambiar fecha, hora, motivo, observaciones y
+ *       estado. Si cambia la fecha o la hora se valida contra la agenda del
+ *       turno y se reinicia el registro de recordatorio enviado.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -182,12 +240,19 @@ router.post('/', verificarToken, turnoController.crear)
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
+ *       '403':
+ *         $ref: '#/components/responses/SinPermisos'
  *       '404':
  *         $ref: '#/components/responses/NoEncontrado'
  *       '409':
  *         $ref: '#/components/responses/Conflicto'
  */
-router.put('/:id', verificarToken, turnoController.actualizar)
+router.put(
+    '/:id',
+    verificarToken,
+    verificarRol('ADMIN'),
+    turnoController.actualizar,
+)
 
 /**
  * @openapi
@@ -197,8 +262,11 @@ router.put('/:id', verificarToken, turnoController.actualizar)
  *       - Turnos
  *     summary: Cancela un turno
  *     description: >
- *       No elimina el registro: cambia su estado a CANCELADO y devuelve el
- *       turno actualizado con código 200.
+ *       ADMIN cancela cualquier turno y PACIENTE solo los suyos (uno ajeno
+ *       responde 404). PROFESIONAL no puede cancelar. No elimina el registro:
+ *       cambia su estado a CANCELADO y devuelve el turno actualizado con
+ *       código 200. Solo se cancelan turnos PENDIENTE o CONFIRMADO; el resto
+ *       responde 409.
  *     security:
  *       - bearerAuth: []
  *     parameters:
@@ -220,9 +288,18 @@ router.put('/:id', verificarToken, turnoController.actualizar)
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
  *         $ref: '#/components/responses/NoAutenticado'
+ *       '403':
+ *         $ref: '#/components/responses/SinPermisos'
  *       '404':
  *         $ref: '#/components/responses/NoEncontrado'
+ *       '409':
+ *         $ref: '#/components/responses/Conflicto'
  */
-router.delete('/:id', verificarToken, turnoController.cancelar)
+router.delete(
+    '/:id',
+    verificarToken,
+    verificarRol('ADMIN', 'PACIENTE'),
+    turnoController.cancelar,
+)
 
 export default router
