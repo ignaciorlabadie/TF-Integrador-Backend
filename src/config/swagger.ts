@@ -78,6 +78,19 @@ const pacienteSchema = {
     },
 }
 
+const pacienteResumenSchema = {
+    type: 'object',
+    description:
+        'Vista reducida del paciente incluida en el detalle de un estudio.',
+    required: ['id', 'nombre', 'apellido', 'dni'],
+    properties: {
+        id: { type: 'integer', example: 1 },
+        nombre: { type: 'string', example: 'Juan' },
+        apellido: { type: 'string', example: 'Perez' },
+        dni: { type: 'string', example: '30111222' },
+    },
+}
+
 const datosPaciente = {
     email: {
         type: 'string',
@@ -661,8 +674,30 @@ const estudioSchema = {
             example: 'estudios/4/archivo.pdf',
         },
         ...timestamps,
-        paciente: { $ref: '#/components/schemas/Paciente' },
+        paciente: { $ref: '#/components/schemas/PacienteResumen' },
     },
+}
+
+const estudioConAutorizacionesSchema = {
+    allOf: [
+        { $ref: '#/components/schemas/Estudio' },
+        {
+            type: 'object',
+            description:
+                'Estudio con sus autorizaciones y el profesional de cada una.',
+            required: ['autorizaciones'],
+            properties: {
+                autorizaciones: {
+                    type: 'array',
+                    description:
+                        'El detalle incluye todas; el listado por paciente incluye solo las disponibles y no vencidas.',
+                    items: {
+                        $ref: '#/components/schemas/AutorizacionEstudio',
+                    },
+                },
+            },
+        },
+    ],
 }
 
 const crearEstudioSchema = {
@@ -1011,6 +1046,7 @@ const options = {
                 },
                 ActualizarPacienteRequest: actualizarPacienteSchema,
                 Paciente: pacienteSchema,
+                PacienteResumen: pacienteResumenSchema,
                 Rol: {
                     type: 'string',
                     enum: ['PACIENTE', 'PROFESIONAL', 'ADMIN'],
@@ -1084,6 +1120,7 @@ const options = {
                 },
                 ActualizarTurnoRequest: actualizarTurnoSchema,
                 Estudio: estudioSchema,
+                EstudioConAutorizaciones: estudioConAutorizacionesSchema,
                 CrearEstudioRequest: crearEstudioSchema,
                 AutorizacionEstudio: autorizacionEstudioSchema,
                 CrearAutorizacionEstudioRequest: crearAutorizacionEstudioSchema,

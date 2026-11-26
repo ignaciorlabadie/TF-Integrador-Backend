@@ -71,7 +71,7 @@ router.get(
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Estudio'
+ *               $ref: '#/components/schemas/EstudioConAutorizaciones'
  *       '400':
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
@@ -117,7 +117,7 @@ router.get(
  *             schema:
  *               type: array
  *               items:
- *                 $ref: '#/components/schemas/Estudio'
+ *                 $ref: '#/components/schemas/EstudioConAutorizaciones'
  *       '400':
  *         $ref: '#/components/responses/DatosInvalidos'
  *       '401':
