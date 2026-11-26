@@ -67,19 +67,80 @@ beforeEach(() => {
     vi.clearAllMocks()
 })
 
+const profesionalPublico = {
+    id: 3,
+    nombre: 'Ana',
+    apellido: 'Gomez',
+    especialidad: 'Cardiología',
+}
+
+const admin: UsuarioToken = { id: 1, email: 'admin@test.com', rol: 'ADMIN' }
+const paciente: UsuarioToken = {
+    id: 5,
+    email: 'paciente@test.com',
+    rol: 'PACIENTE',
+}
+const colega: UsuarioToken = {
+    id: 88,
+    email: 'colega@test.com',
+    rol: 'PROFESIONAL',
+}
+const duenio: UsuarioToken = {
+    id: 77,
+    email: 'duenio@test.com',
+    rol: 'PROFESIONAL',
+}
+
 describe('profesionalController.listar', () => {
-    it('debe responder 200 con la lista de profesionales', async () => {
+    it('debe responder 200 con todos los datos para un ADMIN', async () => {
         vi.mocked(profesionalService.listar).mockResolvedValue([
             profesional,
         ] as never)
 
-        const { req, res, next } = crearMocks()
+        const { req, res, next } = crearMocks({}, {}, admin)
 
         await profesionalController.listar(req, res, next)
 
         expect(res.status).toHaveBeenCalledWith(200)
         expect(res.json).toHaveBeenCalledWith([profesional])
         expect(next).not.toHaveBeenCalled()
+    })
+
+    it('debe ocultar DNI, teléfono, matrícula y usuarioId a un PACIENTE', async () => {
+        vi.mocked(profesionalService.listar).mockResolvedValue([
+            profesional,
+        ] as never)
+
+        const { req, res, next } = crearMocks({}, {}, paciente)
+
+        await profesionalController.listar(req, res, next)
+
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith([profesionalPublico])
+    })
+
+    it('debe ocultar los datos sensibles de colegas a un PROFESIONAL', async () => {
+        vi.mocked(profesionalService.listar).mockResolvedValue([
+            profesional,
+        ] as never)
+
+        const { req, res, next } = crearMocks({}, {}, colega)
+
+        await profesionalController.listar(req, res, next)
+
+        expect(res.json).toHaveBeenCalledWith([profesionalPublico])
+    })
+
+    it('debe mostrar el perfil completo al profesional dueño', async () => {
+        vi.mocked(profesionalService.listar).mockResolvedValue([
+            profesional,
+        ] as never)
+
+        const { req, res, next } = crearMocks({}, {}, duenio)
+
+        await profesionalController.listar(req, res, next)
+
+        expect(res.json).toHaveBeenCalledWith([profesional])
     })
 
     it('debe delegar el error inesperado al middleware con next', async () => {
@@ -121,17 +182,42 @@ describe('profesionalController.buscarPorId', () => {
         expect(res.status).not.toHaveBeenCalled()
     })
 
-    it('debe responder 200 con los datos del profesional', async () => {
+    it('debe responder 200 con todos los datos para un ADMIN', async () => {
         vi.mocked(profesionalService.buscarPorId).mockResolvedValue(
             profesional as never,
         )
 
-        const { req, res, next } = crearMocks({}, { id: '3' })
+        const { req, res, next } = crearMocks({}, { id: '3' }, admin)
 
         await profesionalController.buscarPorId(req, res, next)
 
         expect(profesionalService.buscarPorId).toHaveBeenCalledWith(3)
         expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(profesional)
+    })
+
+    it('debe responder solo los datos públicos a un PACIENTE', async () => {
+        vi.mocked(profesionalService.buscarPorId).mockResolvedValue(
+            profesional as never,
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '3' }, paciente)
+
+        await profesionalController.buscarPorId(req, res, next)
+
+        expect(res.status).toHaveBeenCalledWith(200)
+        expect(res.json).toHaveBeenCalledWith(profesionalPublico)
+    })
+
+    it('debe responder el perfil completo al profesional dueño', async () => {
+        vi.mocked(profesionalService.buscarPorId).mockResolvedValue(
+            profesional as never,
+        )
+
+        const { req, res, next } = crearMocks({}, { id: '3' }, duenio)
+
+        await profesionalController.buscarPorId(req, res, next)
+
         expect(res.json).toHaveBeenCalledWith(profesional)
     })
 })

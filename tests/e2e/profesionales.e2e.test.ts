@@ -60,6 +60,42 @@ describe('POST /api/profesionales', () => {
     })
 })
 
+describe('GET /api/profesionales', () => {
+    it('muestra al paciente solo los datos públicos', async () => {
+        await crearProfesional(admin().token)
+        const paciente = await crearPaciente()
+        const sesion = await login(paciente.body.usuario.email)
+
+        const respuesta = await request(app)
+            .get('/api/profesionales')
+            .set('Authorization', authorization(sesion.body.token))
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body.length).toBeGreaterThan(0)
+
+        for (const profesional of respuesta.body) {
+            expect(Object.keys(profesional).sort()).toEqual([
+                'apellido',
+                'especialidad',
+                'id',
+                'nombre',
+            ])
+        }
+    })
+
+    it('muestra al admin todos los datos', async () => {
+        await crearProfesional(admin().token)
+
+        const respuesta = await request(app)
+            .get('/api/profesionales')
+            .set('Authorization', authorization(admin().token))
+
+        expect(respuesta.status).toBe(200)
+        expect(respuesta.body[0]).toHaveProperty('dni')
+        expect(respuesta.body[0]).toHaveProperty('matricula')
+    })
+})
+
 describe('PUT /api/profesionales/:id', () => {
     it('permite al profesional actualizar su propio perfil', async () => {
         const creado = await crearProfesional(admin().token)

@@ -217,6 +217,19 @@ const profesionalSchema = {
     },
 }
 
+const profesionalPublicoSchema = {
+    type: 'object',
+    description:
+        'Vista reducida del profesional que reciben PACIENTE y PROFESIONAL (salvo su propio perfil). No incluye DNI, teléfono, matrícula ni cuenta asociada.',
+    required: ['id', 'nombre', 'apellido', 'especialidad'],
+    properties: {
+        id: idEntero,
+        nombre: { type: 'string', example: 'Maria' },
+        apellido: { type: 'string', example: 'Lopez' },
+        especialidad: { type: 'string', example: 'Clínica médica' },
+    },
+}
+
 const crearProfesionalSchema = {
     type: 'object',
     required: [
@@ -1011,6 +1024,7 @@ const options = {
                     example: 'PROFESIONAL',
                 },
                 Profesional: profesionalSchema,
+                ProfesionalPublico: profesionalPublicoSchema,
                 CrearProfesionalRequest: crearProfesionalSchema,
                 ActualizarProfesionalRequest: actualizarProfesionalSchema,
                 Espacio: espacioSchema,

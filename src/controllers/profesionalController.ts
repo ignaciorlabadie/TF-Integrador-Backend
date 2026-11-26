@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from 'express'
 
+import type { Profesional } from '../models/index.js'
 import { profesionalService } from '../services/profesionalService.js'
 import type { ActualizarProfesional } from '../types/ActualizarProfesional.js'
 import type { CrearProfesional } from '../types/CrearProfesional.js'
@@ -11,6 +12,44 @@ import {
     esTelefonoValido,
     esTextoValido,
 } from '../utils/validacion.js'
+
+export interface ProfesionalPublico {
+    id: number
+    nombre: string
+    apellido: string
+    especialidad: string
+}
+
+// Datos visibles para cualquier usuario autenticado. DNI, teléfono,
+// matrícula y cuenta asociada quedan reservados al ADMIN y al propio dueño.
+function vistaPublica(profesional: Profesional): ProfesionalPublico {
+    return {
+        id: profesional.id,
+        nombre: profesional.nombre,
+        apellido: profesional.apellido,
+        especialidad: profesional.especialidad,
+    }
+}
+
+function puedeVerDatosCompletos(
+    usuario: Request['usuario'],
+    profesional: Profesional,
+): boolean {
+    if (!usuario) {
+        return false
+    }
+
+    return usuario.rol === 'ADMIN' || profesional.usuarioId === usuario.id
+}
+
+function filtrarPorRol(
+    usuario: Request['usuario'],
+    profesional: Profesional,
+): Profesional | ProfesionalPublico {
+    return puedeVerDatosCompletos(usuario, profesional)
+        ? profesional
+        : vistaPublica(profesional)
+}
 
 function validarCrearProfesional(body: Request['body']): CrearProfesional {
     const {
@@ -136,11 +175,17 @@ function validarDatosActualizacion(
 }
 
 export class ProfesionalController {
-    async listar(_req: Request, res: Response, next: NextFunction) {
+    async listar(req: Request, res: Response, next: NextFunction) {
         try {
             const profesionales = await profesionalService.listar()
 
-            return res.status(200).json(profesionales)
+            return res
+                .status(200)
+                .json(
+                    profesionales.map((profesional) =>
+                        filtrarPorRol(req.usuario, profesional),
+                    ),
+                )
         } catch (error) {
             return next(error)
         }
@@ -156,7 +201,7 @@ export class ProfesionalController {
                 throw new AppError(404, MENSAJES.PROFESIONAL_NO_ENCONTRADO)
             }
 
-            return res.status(200).json(profesional)
+            return res.status(200).json(filtrarPorRol(req.usuario, profesional))
         } catch (error) {
             return next(error)
         }
