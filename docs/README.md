@@ -19,6 +19,7 @@ Documentación de todos los módulos del Sistema de Turnos.
 | [estudios.md](./estudios.md)                             | Estudios médicos, archivos y URL firmada                      |
 | [autorizaciones-estudio.md](./autorizaciones-estudio.md) | Autorizaciones de acceso a estudios por profesional           |
 | [modelo-datos.md](./modelo-datos.md)                     | Tablas del sistema, relaciones y diagrama ER                  |
+| [decisiones-diseno.md](./decisiones-diseno.md)           | Decisión de arquitectura sin patrón de diseño                 |
 
 ## Convenciones
 
